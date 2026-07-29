@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## 0.5.0 - 2026-07-29
 
 ### Added
 
@@ -19,6 +19,24 @@ All notable changes to this project are documented in this file.
 
 - Added and documented `authActor` chart support (`CINC_AUTH_ACTOR` env wiring).
 - Added a NetworkPolicy template with explicit ingress/egress port rules.
+
+### Merged pull requests
+
+- Handle GITHUB_TOKEN's inability to open the release PR (#77)
+- Resolve the six open Dependabot security alerts (#76)
+- Bump every version reference before the release artifact is built (#75)
+- ci: pin GitHub Actions to commit SHAs (#74)
+- stabilize login/session handling; docs: helm local overrides and build guidance (#73)
+- Triage Semgrep findings as false positives (#64)
+- Make new role/environment forms match the edit experience (#60)
+- Add Duplicate for roles and environments (#59)
+
+### Dependency updates
+
+- chore(deps): bump the production-dependencies group across 1 directory with 4 updates (#70)
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 6 updates (#71)
+- chore(deps): bump the github-actions group across 1 directory with 10 updates (#69)
+- chore(deps): bump next from 16.2.9 to 16.2.11 (#72)
 
 ## 0.4.0 - 2026-06-30
 
