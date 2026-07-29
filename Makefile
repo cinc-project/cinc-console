@@ -51,6 +51,16 @@ helm-lint: ## Lint the Helm chart
 helm-template: ## Render the Helm chart
 	helm template c $(CHART) --set cincServerUrl=https://chef.example.com --set webuiKey=DUMMY
 
+.PHONY: release-pr
+release-pr: ## Open a release PR (VERSION=0.5.0); merging it cuts the release
+	@test -n "$(VERSION)" || { echo "usage: make release-pr VERSION=0.5.0"; exit 2; }
+	gh workflow run release-pr.yml -f version=$(VERSION)
+
+.PHONY: version-check
+version-check: ## Verify version references agree (VERSION=0.5.0)
+	@test -n "$(VERSION)" || { echo "usage: make version-check VERSION=0.5.0"; exit 2; }
+	node scripts/set-version.mjs --check $(VERSION)
+
 .PHONY: clean
 clean: ## Remove build artifacts
 	rm -rf .next node_modules/.cache

@@ -20,8 +20,21 @@ with a server username/password; the app signs every server request with the
 - `make lint` — eslint. `make check` — test + lint + build (CI parity).
 - `make smoke` — build the image and verify `/api/healthz` (needs Docker).
 - `make helm-lint` / `make helm-template` — validate the chart.
+- `make release-pr VERSION=0.5.0` — open the release PR. See `RELEASING.md`.
 
 Run `make check` before committing.
+
+## Releasing
+
+Never hand-edit a version. `scripts/set-version.mjs` is the only thing that knows
+where the version lives (`package.json`, `Chart.yaml` `version` + `appVersion`);
+adding a fourth place means adding a target there plus a test. `values.yaml` keeps
+`image.tag: ""` on purpose so it defers to `.Chart.AppVersion`.
+
+`make release-pr VERSION=x.y.z` opens a PR with the bump and a generated
+CHANGELOG section; merging it tags, publishes the Release, and builds the image
+from the tagged commit. Two `set-version.mjs --check` guards refuse to tag or
+build a tree whose versions disagree with the tag. Full flow in `RELEASING.md`.
 
 ## This is Next.js 16 — not the one in your training data
 

@@ -1,10 +1,20 @@
 name: release
 
-# Publish a multi-arch container image when a GitHub Release is published.
+# Publish a multi-arch container image for a release.
 # The image goes to GHCR under the repository owner: ghcr.io/<owner>/cinc-console.
+#
+# Two entry points, both converging on one bare-semver version:
+#   - workflow_call from tag-release.yml, right after it tags a merged release PR
+#   - a hand-published GitHub Release, for the manual path
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: Release version, no leading "v" (e.g. 0.5.0)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,7 +26,50 @@ jobs:
   image:
     runs-on: ubuntu-latest
     steps:
+      # Both triggers converge on one bare-semver version: workflow_call passes it
+      # in, a hand-published Release carries it as the tag name (with a leading v).
+      #
+      # The semver check is duplicated from set-version.mjs's SEMVER on purpose —
+      # it has to run *before* checkout, since the version feeds the ref below and
+      # an unvalidated ref is a checkout-injection vector.
+      - id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          version="${INPUT_VERSION:-${TAG_NAME#v}}"
+
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::\"$version\" is not bare semver; refusing to build" >&2
+            exit 1
+          fi
+
+          # Floating tags track stable releases only, so 0.5.0-rc.1 never becomes
+          # "latest" or claims the 0.5 line. ${version%%-*} drops any suffix first.
+          base="${version%%-*}"
+          case "$version" in *-*) prerelease=true ;; *) prerelease=false ;; esac
+
+          {
+            echo "version=$version"
+            echo "minor=${base%.*}"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Always build the tagged tree. Under workflow_call the default ref is
+          # the caller's (main), which would build the wrong commit.
+          ref: refs/tags/v${{ steps.version.outputs.version }}
+
+      # The guard this whole flow exists for: never build an artifact whose
+      # in-tree version references disagree with the tag being built. The release
+      # PR flow already puts the bump in the tagged commit; this is the backstop
+      # that also covers hand-published releases.
+      - name: Verify the tagged tree declares this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/set-version.mjs --check "$VERSION"
 
       # QEMU + buildx give us the cross-build (arm64) and OCI features.
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
@@ -28,16 +81,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Derive image tags from the release: the semver (e.g. 0.2.0), the major.minor
-      # (0.2), and latest. The leading "v" on the git tag is stripped automatically.
+      # Image tags: the semver (0.5.0), the major.minor line (0.5), and latest.
+      # These are raw rather than type=semver because type=semver reads the git
+      # ref, which under workflow_call is the caller's branch, not the tag.
       - id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ghcr.io/${{ github.repository_owner }}/cinc-console
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.minor }},enable=${{ steps.version.outputs.prerelease == 'false' }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.prerelease == 'false' }}
 
       - id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0

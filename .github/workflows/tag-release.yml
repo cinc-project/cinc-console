@@ -1,0 +1,89 @@
+name: tag-release
+
+# Step 2 of 2. Merging a release/<version> PR is what cuts the release: verify
+# the merged tree, tag it, publish the GitHub Release, then build the image from
+# that exact tag.
+#
+# Why the build is *called* rather than triggered: actions taken with the default
+# GITHUB_TOKEN do not trigger further workflows, so the Release published below
+# will not fire release.yml's `release: published` trigger. Invoking release.yml
+# via workflow_call keeps the chain working without a PAT — and, as a bonus,
+# means a hand-published Release still builds exactly once.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write # create and push the tag, publish the Release
+
+jobs:
+  tag:
+    # Only merged release branches from this repo. The head.repo check matters:
+    # a fork PR can name its branch release/9.9.9, and while its token would be
+    # read-only, refusing outright is clearer than failing halfway through.
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0 # need existing tags to detect a re-release
+
+      # head.ref is attacker-influencable in general, so it is read from env and
+      # validated by set-version.mjs (bare semver only) before it reaches git.
+      - name: Resolve and verify the version
+        id: version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          version="${HEAD_REF#release/}"
+          # The gate: refuse to tag a tree whose version files disagree with the
+          # branch, however the PR was edited before merging.
+          node scripts/set-version.mjs --check "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Tag the merge commit and publish the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::tag v$VERSION already exists; nothing was released" >&2
+            exit 1
+          fi
+
+          node scripts/changelog.mjs --extract "$VERSION" > /tmp/notes.md
+
+          git tag "v$VERSION" "$SHA"
+          git push origin "v$VERSION"
+
+          # A version with a prerelease suffix (0.5.0-rc.1) is marked as such so
+          # it does not become the repo's "Latest release".
+          prerelease=""
+          case "$VERSION" in *-*) prerelease="--prerelease" ;; esac
+
+          # shellcheck disable=SC2086 # $prerelease is a deliberate optional flag
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes-file /tmp/notes.md \
+            $prerelease
+
+  image:
+    needs: tag
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write

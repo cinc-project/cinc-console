@@ -108,6 +108,10 @@ the dependency stage.
 For complete build instructions (public vs private registry, token auth, and
 cross-platform `buildx` examples), see [BUILD.md](BUILD.md).
 
+To cut a release, see [RELEASING.md](RELEASING.md) — `make release-pr VERSION=0.5.0`
+opens a PR that bumps every version reference, and merging it tags the release and
+publishes the signed multi-arch image.
+
 ## Development
 
 ```bash

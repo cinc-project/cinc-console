@@ -1,0 +1,79 @@
+name: release-pr
+
+# Step 1 of 2 in cutting a release. Opens (or refreshes) a PR that bumps every
+# version reference in the repo and adds the CHANGELOG section. Merging that PR
+# is what actually releases — see tag-release.yml.
+#
+# The bump lands in the commit that gets tagged, which is the whole point: the
+# image build checks out the tag, so it cannot see a stale version.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, no leading "v" (e.g. 0.5.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write # push the release/<version> branch
+  pull-requests: write # open the release PR
+
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0 # changelog.mjs needs tags and full history
+
+      # Inputs go through env, never string-interpolated into the shell.
+      # set-version.mjs also rejects anything that is not bare semver, so a bad
+      # input fails here — before any branch or PR exists.
+      - name: Bump version references and write the CHANGELOG section
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/set-version.mjs "$VERSION"
+          node scripts/changelog.mjs "$VERSION"
+
+      - name: Open or refresh the release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/cinc-console
+        run: |
+          set -euo pipefail
+          branch="release/$VERSION"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -am "Release $VERSION"
+          # Force-push so re-running for the same version refreshes the branch
+          # rather than failing on a stale one.
+          git push --force origin "$branch"
+
+          if [ -n "$(gh pr list --head "$branch" --state open --json number -q '.[].number')" ]; then
+            echo "Refreshed the existing PR for $branch."
+            exit 0
+          fi
+
+          # Written to a file rather than inlined: an unquoted heredoc treats
+          # backticks as command substitution, so the body avoids them entirely.
+          cat > /tmp/pr-body.md <<EOF
+          Prepares the $VERSION release.
+
+          - package.json and the Helm chart (version + appVersion) set to $VERSION
+          - CHANGELOG.md gains a $VERSION section generated from the PR titles
+            merged since the last tag
+
+          Reword the generated notes on this branch if you want to; they become
+          the GitHub Release body verbatim.
+
+          Merging this PR tags v$VERSION, publishes the GitHub Release, and builds
+          $IMAGE:$VERSION from the tagged commit.
+          EOF
+
+          gh pr create --base main --head "$branch" \
+            --title "Release $VERSION" \
+            --body-file /tmp/pr-body.md
