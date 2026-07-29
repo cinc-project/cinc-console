@@ -38,7 +38,20 @@ jobs:
 
       - name: Open or refresh the release PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Prefer RELEASE_PR_TOKEN (a PAT or GitHub App token) when it exists.
+          # Two reasons, both about GITHUB_TOKEN's limits rather than permissions:
+          #
+          #  1. PR creation by GITHUB_TOKEN is gated by a separate repo/org
+          #     setting -- Settings > Actions > General > "Allow GitHub Actions to
+          #     create and approve pull requests" -- which `pull-requests: write`
+          #     does not satisfy. Off by default; createPullRequest is refused.
+          #  2. Events triggered by GITHUB_TOKEN do not start new workflow runs,
+          #     so a PR it opens gets no CI. That defeats the point of reviewing
+          #     the release diff with a green build on the exact tree that ships.
+          #
+          # A PAT/App token avoids both. Without one we degrade gracefully below.
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || github.token }}
+          USING_PAT: ${{ secrets.RELEASE_PR_TOKEN != '' }}
           VERSION: ${{ inputs.version }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/cinc-console
         run: |
@@ -74,6 +87,44 @@ jobs:
           $IMAGE:$VERSION from the tagged commit.
           EOF
 
-          gh pr create --base main --head "$branch" \
-            --title "Release $VERSION" \
-            --body-file /tmp/pr-body.md
+          if gh pr create --base main --head "$branch" \
+               --title "Release $VERSION" \
+               --body-file /tmp/pr-body.md 2>/tmp/pr-err; then
+            if [ "$USING_PAT" != "true" ]; then
+              echo "::warning::PR opened with GITHUB_TOKEN, so CI will not run on it. Close and reopen the PR, or set RELEASE_PR_TOKEN."
+            fi
+            exit 0
+          fi
+
+          cat /tmp/pr-err >&2
+
+          # Anything other than the settings gate is a genuine failure.
+          if ! grep -q 'not permitted to create or approve pull requests' /tmp/pr-err; then
+            exit 1
+          fi
+
+          # The branch and its bump commit are this job's real product, and they
+          # are already pushed. Rather than fail red on a repo setting the code
+          # cannot change, hand back a one-click link. A human-opened PR also gets
+          # CI, which a GITHUB_TOKEN-opened one would not.
+          compare="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
+          {
+            echo "## Release $VERSION — one manual step needed"
+            echo
+            echo "Branch \`$branch\` is pushed with the version bump and CHANGELOG."
+            echo "GitHub refused to let Actions open the PR, so open it yourself:"
+            echo
+            echo "### [→ Open the release PR]($compare)"
+            echo
+            echo "To make this fully automatic, either:"
+            echo
+            echo "- enable **Settings → Actions → General → Workflow permissions →"
+            echo "  \"Allow GitHub Actions to create and approve pull requests\"**, or"
+            echo "- add a \`RELEASE_PR_TOKEN\` secret (PAT or GitHub App token with"
+            echo "  \`contents: write\` + \`pull-requests: write\`)."
+            echo
+            echo "The token is the better option: a PR opened by \`GITHUB_TOKEN\` gets"
+            echo "no CI run, because events it triggers do not start workflows."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::warning::Branch pushed, but Actions is not permitted to open PRs. See the run summary for a one-click link."

@@ -4,6 +4,28 @@ Cutting a release is two steps: open a release PR, then merge it. Everything
 else — tagging, release notes, the signed multi-arch image — follows from the
 merge.
 
+## One-time setup
+
+`GITHUB_TOKEN` cannot open a pull request unless a repo setting allows it, and
+even when allowed, **a PR it opens gets no CI run** — GitHub does not start
+workflows for events triggered by `GITHUB_TOKEN`. Since the point of the release
+PR is to review the diff with a green build on the exact tree that ships, pick
+one:
+
+| Option | PR opens automatically | CI runs on it |
+| --- | --- | --- |
+| `RELEASE_PR_TOKEN` secret (**recommended**) | yes | yes |
+| Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests* | yes | **no** |
+| Neither | no — you get a one-click link | yes (you opened it) |
+
+For the first, add a repository secret named `RELEASE_PR_TOKEN` holding a PAT or
+GitHub App token with `contents: write` and `pull-requests: write`.
+
+With none of these, `release-pr` still does all the real work — it pushes
+`release/<version>` with the bump and CHANGELOG — and the run summary gives you a
+link that opens the PR prefilled. The release is not blocked, just one click
+longer.
+
 ## Cut a release
 
 ```bash
