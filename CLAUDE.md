@@ -90,6 +90,16 @@ permission" (it never substitutes its own check).
   (a version/revision or the whole object). Editing cookbook/policy content
   and cookbook uploads are out of scope. `_default` environment is read-only.
 
+## Dependency overrides
+
+`package.json` `pnpm.overrides` forces patched versions of transitive packages
+whose parent pins a vulnerable range — currently `postcss` and `sharp`, both
+pinned by `next` (`postcss 8.4.31` exactly, `sharp ^0.34.5`), so no `next`
+upgrade fixes them. Each override is scoped to the vulnerable range
+(`"postcss@<8.5.18": ">=8.5.18"`), so it stops applying once upstream catches
+up. Drop an entry when `next` bumps its own pin past the advisory; check with
+`pnpm why <pkg>` and `pnpm audit`.
+
 ## Accessibility
 
 **We comply with [WCAG 2.2 level AA](https://www.w3.org/TR/WCAG22/) — treat it
