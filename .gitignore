@@ -48,6 +48,9 @@ yarn-error.log*
 # local Helm override values (developer-specific)
 values-local.yaml
 
+# agent-created git worktrees checked out inside the repo
+/.claude/worktrees/
+
 # vercel
 .vercel
 
