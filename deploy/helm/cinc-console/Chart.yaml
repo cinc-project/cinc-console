@@ -2,8 +2,8 @@ apiVersion: v2
 name: cinc-console
 description: Web console for a Cinc/Chef Infra Server
 type: application
-version: 0.1.1
-appVersion: "0.1.1"
+version: 0.4.0
+appVersion: "0.4.0"
 home: https://github.com/tas50/cinc-console
 sources:
   - https://github.com/tas50/cinc-console

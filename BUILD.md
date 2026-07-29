@@ -77,12 +77,13 @@ docker buildx build \
   .
 ```
 
-To push directly during build:
+To push directly during build. Set `VERSION` to the release you are building
+(`export VERSION=0.5.0`); these examples stay unpinned so they cannot go stale:
 
 ```bash
 docker buildx build \
   --platform linux/amd64 \
-  -t registry.example.com/cinc/cinc-console:0.1.1 \
+  -t registry.example.com/cinc/cinc-console:$VERSION \
   --push \
   .
 ```
@@ -97,7 +98,7 @@ Use Docker Buildx with a comma-separated platform list:
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t registry.example.com/cinc/cinc-console:0.1.1 \
+  -t registry.example.com/cinc/cinc-console:$VERSION \
   --push \
   .
 ```
