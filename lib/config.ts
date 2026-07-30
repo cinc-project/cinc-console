@@ -11,6 +11,9 @@ const schema = z.object({
   CINC_CA_CERT_FILE: z.string().optional(),
   CINC_SSL_NO_VERIFY: z.enum(["true", "false"]).optional(),
   SESSION_TTL_SECONDS: z.coerce.number().optional(),
+  // Secure flag on the session cookie. Unset means "on in production" — set it
+  // to false only for a deliberate plain-HTTP deployment.
+  SESSION_COOKIE_SECURE: z.enum(["true", "false"]).optional(),
   CHEF_VERSION: z.string().optional(),
   // Optional actor for POST /authenticate_user fallback when impersonated user gets 403
   CINC_AUTH_ACTOR: z.string().optional(),
@@ -23,6 +26,8 @@ export type Config = {
   caCert?: string;
   sslNoVerify: boolean;
   sessionTtlSeconds: number;
+  /** undefined = decide from NODE_ENV; see lib/session.ts. */
+  cookieSecure?: boolean;
   chefVersion: string;
   authActor?: string;
 };
@@ -69,6 +74,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     caCert,
     sslNoVerify: e.CINC_SSL_NO_VERIFY === "true",
     sessionTtlSeconds: e.SESSION_TTL_SECONDS ?? 28800,
+    cookieSecure:
+      e.SESSION_COOKIE_SECURE === undefined
+        ? undefined
+        : e.SESSION_COOKIE_SECURE === "true",
     chefVersion: e.CHEF_VERSION ?? "16.0.0",
     authActor: e.CINC_AUTH_ACTOR,
   };

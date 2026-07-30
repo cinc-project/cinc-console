@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { cookbooks, clients } from "./readonly";
+import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
 
@@ -15,7 +16,7 @@ test("cookbooks.list hits GET /cookbooks within the org", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/cookbooks",
+    path: cincPath`/cookbooks`,
   });
 });
 
@@ -26,6 +27,6 @@ test("clients.get hits GET /clients/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/clients/web01",
+    path: cincPath`/clients/web01`,
   });
 });

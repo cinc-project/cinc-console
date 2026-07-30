@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { listUserOrgs } from "./orgs";
+import { cincPath } from "./path";
 
 test("maps organization sub-objects", async () => {
   req.mockResolvedValueOnce([
@@ -18,6 +19,6 @@ test("maps organization sub-objects", async () => {
   expect(req).toHaveBeenCalledWith({
     user: "alice",
     method: "GET",
-    path: "/users/alice/organizations",
+    path: cincPath`/users/alice/organizations`,
   });
 });

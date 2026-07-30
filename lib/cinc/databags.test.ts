@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { dataBags } from "./databags";
+import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
 
@@ -15,7 +16,7 @@ test("list hits GET /data", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/data",
+    path: cincPath`/data`,
   });
 });
 
@@ -26,7 +27,7 @@ test("createBag POSTs the name to /data", async () => {
     user: "alice",
     org: "acme",
     method: "POST",
-    path: "/data",
+    path: cincPath`/data`,
     body: { name: "secrets" },
   });
 });
@@ -38,7 +39,7 @@ test("removeBag DELETEs /data/<bag>", async () => {
     user: "alice",
     org: "acme",
     method: "DELETE",
-    path: "/data/secrets",
+    path: cincPath`/data/secrets`,
   });
 });
 
@@ -49,7 +50,7 @@ test("getItem hits GET /data/<bag>/<id>", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/data/secrets/db",
+    path: cincPath`/data/secrets/db`,
   });
 });
 
@@ -60,7 +61,7 @@ test("putItem PUTs the body to /data/<bag>/<id>", async () => {
     user: "alice",
     org: "acme",
     method: "PUT",
-    path: "/data/secrets/db",
+    path: cincPath`/data/secrets/db`,
     body: { id: "db", pw: "x" },
   });
 });
@@ -72,7 +73,7 @@ test("createItem POSTs the body to /data/<bag>", async () => {
     user: "alice",
     org: "acme",
     method: "POST",
-    path: "/data/secrets",
+    path: cincPath`/data/secrets`,
     body: { id: "db" },
   });
 });
@@ -84,6 +85,6 @@ test("removeItem DELETEs /data/<bag>/<id>", async () => {
     user: "alice",
     org: "acme",
     method: "DELETE",
-    path: "/data/secrets/db",
+    path: cincPath`/data/secrets/db`,
   });
 });

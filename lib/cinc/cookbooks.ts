@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 import { compareVersions } from "./fleet";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -69,7 +70,7 @@ export async function listCookbooks(
     user,
     org,
     method: "GET",
-    path: "/cookbooks",
+    path: cincPath`/cookbooks`,
     query: { num_versions: "all" },
   });
   return parseCookbookList(data);
@@ -85,7 +86,7 @@ export async function listCookbookVersions(
     user,
     org,
     method: "GET",
-    path: `/cookbooks/${name}`,
+    path: cincPath`/cookbooks/${name}`,
   });
   return parseCookbookVersions(data);
 }
@@ -101,7 +102,7 @@ export async function deleteCookbookVersion(
     user,
     org,
     method: "DELETE",
-    path: `/cookbooks/${name}/${version}`,
+    path: cincPath`/cookbooks/${name}/${version}`,
   });
 }
 

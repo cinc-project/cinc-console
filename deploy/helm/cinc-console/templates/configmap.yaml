@@ -9,8 +9,8 @@ data:
   CINC_SSL_NO_VERIFY: {{ .Values.sslNoVerify | quote }}
   SESSION_TTL_SECONDS: {{ .Values.sessionTtlSeconds | quote }}
   NODE_ENV: {{ .Values.nodeEnv | quote }}
-  {{- if .Values.trustProxy }}
-  TRUST_PROXY: "true"
+  {{- if ne (toString .Values.cookieSecure) "" }}
+  SESSION_COOKIE_SECURE: {{ .Values.cookieSecure | quote }}
   {{- end }}
   {{- if .Values.authActor }}
   CINC_AUTH_ACTOR: {{ .Values.authActor | quote }}

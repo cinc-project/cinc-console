@@ -9,6 +9,7 @@ vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 vi.mock("../config", () => ({ getConfig: () => getConfigMock() }));
 
 import { authenticateUser } from "./auth";
+import { cincPath } from "./path";
 
 beforeEach(() => {
   req.mockReset();
@@ -24,7 +25,7 @@ test("returns the user (with display_name) on success", async () => {
   expect(req).toHaveBeenCalledWith(
     expect.objectContaining({
       method: "POST",
-      path: "/authenticate_user",
+      path: cincPath`/authenticate_user`,
       body: { username: "alice", password: "pw" },
     }),
   );
@@ -59,7 +60,7 @@ test("signs as authActor when configured", async () => {
   expect(req).toHaveBeenCalledWith(
     expect.objectContaining({
       user: "pivotal",
-      path: "/authenticate_user",
+      path: cincPath`/authenticate_user`,
       body: { username: "alice", password: "pw" },
     }),
   );
@@ -74,7 +75,7 @@ test("signs as username when authActor is not configured", async () => {
   expect(req).toHaveBeenCalledWith(
     expect.objectContaining({
       user: "alice",
-      path: "/authenticate_user",
+      path: cincPath`/authenticate_user`,
     }),
   );
 });

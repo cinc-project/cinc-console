@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 import { isCincError } from "./errors";
 import { getConfig } from "../config";
 
@@ -36,7 +37,7 @@ export async function authenticateUser(
     const res = await cincRequest<{ user?: AuthUser }>({
       user: signingUser,
       method: "POST",
-      path: "/authenticate_user",
+      path: cincPath`/authenticate_user`,
       body: { username, password },
     });
     return res?.user ?? { username };

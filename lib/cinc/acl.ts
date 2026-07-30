@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 export type Acl = Record<string, { actors: string[]; groups: string[] }>;
 
@@ -9,6 +10,6 @@ export function getAcl(user: string, org: string, kind: string, name: string) {
     user,
     org,
     method: "GET",
-    path: `/${kind}/${name}/_acl`,
+    path: cincPath`/${kind}/${name}/_acl`,
   });
 }

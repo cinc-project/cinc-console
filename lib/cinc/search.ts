@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 import type { FleetNode } from "./fleet";
 
 /**
@@ -32,7 +33,7 @@ export async function partialSearch<T>(
       user,
       org,
       method: "POST",
-      path: `/search/${index}`,
+      path: cincPath`/search/${index}`,
       query: { q: query, rows: PAGE_ROWS, start: page * PAGE_ROWS },
       body: keys,
     });
@@ -65,7 +66,7 @@ export async function searchTotal(
     user,
     org,
     method: "POST",
-    path: `/search/${index}`,
+    path: cincPath`/search/${index}`,
     query: { q: query, rows: 0, start: 0 },
     body: {},
   });

@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 /**
  * A standard Chef org-scoped object family living at /<kind>:
@@ -17,18 +18,18 @@ export function makeResource<T = Record<string, unknown>>(kind: string) {
         user,
         org,
         method: "GET",
-        path: `/${kind}`,
+        path: cincPath`/${kind}`,
       }),
     get: (user: string, org: string, name: string) =>
-      cincRequest<T>({ user, org, method: "GET", path: `/${kind}/${name}` }),
+      cincRequest<T>({ user, org, method: "GET", path: cincPath`/${kind}/${name}` }),
     create: (user: string, org: string, body: T) =>
-      cincRequest<unknown>({ user, org, method: "POST", path: `/${kind}`, body }),
+      cincRequest<unknown>({ user, org, method: "POST", path: cincPath`/${kind}`, body }),
     update: (user: string, org: string, name: string, body: T) =>
       cincRequest<unknown>({
         user,
         org,
         method: "PUT",
-        path: `/${kind}/${name}`,
+        path: cincPath`/${kind}/${name}`,
         body,
       }),
     remove: (user: string, org: string, name: string) =>
@@ -36,7 +37,7 @@ export function makeResource<T = Record<string, unknown>>(kind: string) {
         user,
         org,
         method: "DELETE",
-        path: `/${kind}/${name}`,
+        path: cincPath`/${kind}/${name}`,
       }),
   };
 }

@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { getAcl } from "./acl";
+import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
 
@@ -15,6 +16,6 @@ test("getAcl hits GET /<kind>/<name>/_acl within the org", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/nodes/web01/_acl",
+    path: cincPath`/nodes/web01/_acl`,
   });
 });

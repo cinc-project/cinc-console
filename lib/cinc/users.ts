@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 export type User = {
   username: string;
@@ -13,7 +14,7 @@ export type User = {
 
 /** The global user record (GET /users/<name>). Never includes a password. */
 export const getUser = (user: string) =>
-  cincRequest<User>({ user, method: "GET", path: `/users/${user}` });
+  cincRequest<User>({ user, method: "GET", path: cincPath`/users/${user}` });
 
 /**
  * Replace the global user record (PUT /users/<name>). The server replaces the
@@ -21,4 +22,4 @@ export const getUser = (user: string) =>
  * stashed out-of-band to change the web-login password.
  */
 export const putUser = (user: string, body: User & { password?: string }) =>
-  cincRequest<unknown>({ user, method: "PUT", path: `/users/${user}`, body });
+  cincRequest<unknown>({ user, method: "PUT", path: cincPath`/users/${user}`, body });

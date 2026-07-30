@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { makeResource } from "./resource";
+import { cincPath } from "./path";
 
 const nodes = makeResource("nodes");
 
@@ -17,7 +18,7 @@ test("list hits GET /<kind> within the org", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/nodes",
+    path: cincPath`/nodes`,
   });
 });
 
@@ -28,7 +29,7 @@ test("get hits GET /<kind>/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/nodes/web01",
+    path: cincPath`/nodes/web01`,
   });
 });
 
@@ -39,7 +40,7 @@ test("update hits PUT /<kind>/<name> with body", async () => {
     user: "alice",
     org: "acme",
     method: "PUT",
-    path: "/nodes/web01",
+    path: cincPath`/nodes/web01`,
     body: { name: "web01" },
   });
 });
@@ -51,6 +52,6 @@ test("remove hits DELETE /<kind>/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "DELETE",
-    path: "/nodes/web01",
+    path: cincPath`/nodes/web01`,
   });
 });

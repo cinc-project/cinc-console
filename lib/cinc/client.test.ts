@@ -17,6 +17,7 @@ vi.mock("../config", () => ({
 }));
 
 import { cincRequest } from "./client";
+import { cincPath, type CincPath } from "./path";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -34,7 +35,7 @@ test("signs as webui key impersonating the user with web source", async () => {
   const out = await cincRequest<{ ok: number }>({
     user: "alice",
     method: "GET",
-    path: "/nodes",
+    path: cincPath`/nodes`,
     org: "acme",
   });
   expect(out.ok).toBe(1);
@@ -52,8 +53,51 @@ test("throws CincError with status on non-2xx", async () => {
     vi.fn(async () => new Response("denied", { status: 403 })),
   );
   await expect(
-    cincRequest({ user: "u", method: "GET", path: "/nodes", org: "acme" }),
+    cincRequest({ user: "u", method: "GET", path: cincPath`/nodes`, org: "acme" }),
   ).rejects.toMatchObject({ status: 403, forbidden: true });
+});
+
+test("refuses to sign a path a name has broken out of", async () => {
+  const fetchMock = vi.fn(
+    async () => new Response(JSON.stringify({}), { status: 200 }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  // `/orgs/acme/nodes/web01%2F_acl` reaches an action as the name "web01/_acl".
+  // Concatenated it is indistinguishable from the ACL endpoint acl.ts builds, so
+  // cincPath has to reject it while it is still a name.
+  const badName = "web01/_acl";
+  expect(() => cincPath`/nodes/${badName}`).toThrow(/unsafe request path/);
+
+  // A hostile org slug is the same problem one level up, and it is spliced in by
+  // cincRequest itself rather than by the tag.
+  await expect(
+    cincRequest({ user: "u", method: "GET", path: cincPath`/nodes`, org: "acme/../other" }),
+  ).rejects.toMatchObject({ name: "UnsafePathError" });
+
+  // The impersonated user id is a request header as well as a path segment.
+  const crlf = String.fromCharCode(13, 10);
+  await expect(
+    cincRequest({
+      user: `u${crlf}X-Ops-UserId: pivotal`,
+      method: "GET",
+      path: cincPath`/nodes`,
+      org: "acme",
+    }),
+  ).rejects.toMatchObject({ name: "UnsafePathError" });
+
+  // Belt and braces: even if the brand were cast away, the assembled path is
+  // re-checked before anything is signed.
+  await expect(
+    cincRequest({
+      user: "u",
+      method: "GET",
+      path: "/nodes/%2e%2e%2fusers" as unknown as CincPath,
+      org: "acme",
+    }),
+  ).rejects.toMatchObject({ name: "UnsafePathError" });
+
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test("omits the org prefix for top-level paths", async () => {
@@ -61,7 +105,7 @@ test("omits the org prefix for top-level paths", async () => {
     async () => new Response(JSON.stringify({}), { status: 200 }),
   );
   vi.stubGlobal("fetch", fetchMock);
-  await cincRequest({ user: "u", method: "POST", path: "/authenticate_user", body: { username: "u" } });
+  await cincRequest({ user: "u", method: "POST", path: cincPath`/authenticate_user`, body: { username: "u" } });
   const [url] = fetchMock.mock.calls[0] as [string];
   expect(url).toBe("https://s/authenticate_user");
 });

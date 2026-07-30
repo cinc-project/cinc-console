@@ -16,7 +16,7 @@ const { getUser, putUser } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/cinc/users", () => ({ getUser, putUser }));
 
-import { saveProfile, changePassword } from "./actions";
+import { saveProfile, changePassword, type ProfileDetails } from "./actions";
 
 beforeEach(() => {
   getUser.mockReset();
@@ -66,4 +66,44 @@ test("saveProfile syncs the session display name when it changes", async () => {
   await saveProfile({ display_name: "Anna B" });
   expect(session.displayName).toBe("Anna B");
   expect(session.save).toHaveBeenCalled();
+});
+
+test("saveProfile writes only the fields the form owns", async () => {
+  // A Server Action is a public endpoint and its parameter type is erased at
+  // runtime, so a caller can hand us any object. None of these may ride along to
+  // a PUT /users signed with the webui key.
+  putUser.mockResolvedValueOnce({});
+  await saveProfile({
+    display_name: "Anna B",
+    password: "hunter2",
+    public_key: "ATTACKER",
+    recovery_authentication_enabled: true,
+    external_authentication_uid: "admin",
+  } as ProfileDetails);
+
+  expect(putUser).toHaveBeenCalledWith("anna", {
+    username: "anna",
+    email: "old@x",
+    public_key: "K", // the record's own value, not the caller's
+    display_name: "Anna B",
+  });
+});
+
+test("saveProfile ignores non-string values for its own fields", async () => {
+  putUser.mockResolvedValueOnce({});
+  await saveProfile({ email: { toString: 1 } } as unknown as ProfileDetails);
+  expect(putUser).toHaveBeenCalledWith("anna", {
+    username: "anna",
+    email: "old@x",
+    public_key: "K",
+  });
+});
+
+test("changePassword rejects a non-string password", async () => {
+  // `(123456).length < 6` is false, so a bare length check would let this reach
+  // the server as a numeric password.
+  await expect(changePassword(123456 as unknown as string)).resolves.toEqual({
+    error: "password must be at least 6 characters",
+  });
+  expect(putUser).not.toHaveBeenCalled();
 });

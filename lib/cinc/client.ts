@@ -9,6 +9,12 @@ import { Agent, setGlobalDispatcher } from "undici";
 import { getConfig } from "../config";
 import { signHeaders } from "./signing";
 import { CincError } from "./errors";
+import {
+  assertSafePath,
+  assertSafeSegment,
+  isUnsafePathError,
+  type CincPath,
+} from "./path";
 import { log } from "../log";
 
 let dispatcherReady = false;
@@ -41,7 +47,12 @@ export function nowMs(): number {
 export type CincRequestOptions = {
   user: string;
   method: string;
-  path: string;
+  /**
+   * Built with the `cincPath` tagged template, which vets each interpolated name
+   * as a single path segment. The type is branded, so a plain string won't
+   * compile — see path.ts for why concatenating first is not good enough.
+   */
+  path: CincPath;
   body?: unknown;
   /** When set, the path is prefixed with /organizations/<org>. */
   org?: string;
@@ -60,6 +71,27 @@ export async function cincRequest<T>(opts: CincRequestOptions): Promise<T> {
   const fullPath = opts.org
     ? `/organizations/${opts.org}${opts.path}`
     : opts.path;
+  // `path` is already vetted segment-by-segment by its `cincPath` tag. The two
+  // values spliced in here are not, so vet them the same way BEFORE signing: the
+  // org slug is a path segment (and comes straight from a route param, where Next
+  // decodes `%2F` into a real separator), and the impersonated user id also lands
+  // in a request header, where a CR/LF would be header injection. See path.ts.
+  try {
+    assertSafeSegment(opts.user, "user");
+    if (opts.org !== undefined) assertSafeSegment(opts.org, "org");
+    assertSafePath(fullPath);
+  } catch (e) {
+    if (isUnsafePathError(e)) {
+      log.warn("cinc.unsafe_path", {
+        user: opts.user,
+        org: opts.org,
+        method: opts.method,
+        path: fullPath,
+        detail: e.detail,
+      });
+    }
+    throw e;
+  }
   const bodyStr = opts.body === undefined ? "" : JSON.stringify(opts.body);
   const headers: Record<string, string> = {
     ...signHeaders(

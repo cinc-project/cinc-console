@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 /**
  * Org membership: users and groups.
@@ -14,14 +15,14 @@ export const members = {
       user,
       org,
       method: "GET",
-      path: "/users",
+      path: cincPath`/users`,
     }),
   invite: (user: string, org: string, username: string) =>
     cincRequest<unknown>({
       user,
       org,
       method: "POST",
-      path: "/association_requests",
+      path: cincPath`/association_requests`,
       body: { user: username },
     }),
   removeUser: (user: string, org: string, username: string) =>
@@ -29,21 +30,21 @@ export const members = {
       user,
       org,
       method: "DELETE",
-      path: `/users/${username}`,
+      path: cincPath`/users/${username}`,
     }),
   listGroups: (user: string, org: string) =>
     cincRequest<Record<string, string>>({
       user,
       org,
       method: "GET",
-      path: "/groups",
+      path: cincPath`/groups`,
     }),
   getGroup: (user: string, org: string, group: string) =>
     cincRequest<Record<string, unknown>>({
       user,
       org,
       method: "GET",
-      path: `/groups/${group}`,
+      path: cincPath`/groups/${group}`,
     }),
   updateGroup: (
     user: string,
@@ -55,7 +56,7 @@ export const members = {
       user,
       org,
       method: "PUT",
-      path: `/groups/${group}`,
+      path: cincPath`/groups/${group}`,
       body,
     }),
   deleteGroup: (user: string, org: string, group: string) =>
@@ -63,6 +64,6 @@ export const members = {
       user,
       org,
       method: "DELETE",
-      path: `/groups/${group}`,
+      path: cincPath`/groups/${group}`,
     }),
 };

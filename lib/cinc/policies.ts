@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -27,7 +28,7 @@ export async function listPolicyRevisions(
     user,
     org,
     method: "GET",
-    path: `/policies/${name}`,
+    path: cincPath`/policies/${name}`,
   });
   return parsePolicyRevisions(data);
 }
@@ -43,7 +44,7 @@ export async function deletePolicyRevision(
     user,
     org,
     method: "DELETE",
-    path: `/policies/${name}/revisions/${revision}`,
+    path: cincPath`/policies/${name}/revisions/${revision}`,
   });
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 /**
  * A read-only org-scoped object family living at /<kind>. Browsing only —
@@ -12,14 +13,14 @@ function readOnlyResource(kind: string) {
         user: u,
         org: o,
         method: "GET",
-        path: `/${kind}`,
+        path: cincPath`/${kind}`,
       }),
     get: (u: string, o: string, name: string) =>
       cincRequest<unknown>({
         user: u,
         org: o,
         method: "GET",
-        path: `/${kind}/${name}`,
+        path: cincPath`/${kind}/${name}`,
       }),
   };
 }

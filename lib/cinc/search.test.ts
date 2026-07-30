@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { searchTotal } from "./search";
+import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
 
@@ -18,7 +19,7 @@ test("searchTotal asks for zero rows and returns the total", async () => {
     user: "alice",
     org: "acme",
     method: "POST",
-    path: "/search/node",
+    path: cincPath`/search/node`,
     query: { q: "ohai_time:[* TO *]", rows: 0, start: 0 },
     body: {},
   });

@@ -1,5 +1,6 @@
 import "server-only";
 import { isCincError } from "./errors";
+import { isUnsafePathError } from "./path";
 
 export type Fetched<T> = { data: T } | { error: string };
 
@@ -13,11 +14,16 @@ export async function safeGet<T>(fn: () => Promise<T>): Promise<Fetched<T>> {
       if (e.notFound) return { error: "not found" };
       return { error: `server error (${e.status})` };
     }
+    // An unaddressable name (see path.ts) is a bad request, not an outage — a
+    // hand-typed URL like /nodes/web01%2F_acl lands here.
+    if (isUnsafePathError(e)) return { error: "invalid name" };
     throw e;
   }
 }
 
 export function explainRead(error: string): string {
+  if (error === "invalid name")
+    return "That name can't be addressed on the Cinc server — check the URL.";
   if (error === "forbidden")
     return "You don't have permission to view this in this organization.";
   if (error === "not found")

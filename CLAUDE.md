@@ -134,7 +134,32 @@ feature is not done until it works with a keyboard and a screen reader. Concrete
 
 Required env (validated at boot, fail-fast): `CINC_SERVER_URL`,
 `CINC_WEBUI_KEY` (PEM), `SESSION_SECRET` (32+ chars). Optional: `CINC_CA_CERT`,
-`CINC_SSL_NO_VERIFY`, `SESSION_TTL_SECONDS`. See `.env.example`.
+`CINC_SSL_NO_VERIFY`, `SESSION_TTL_SECONDS`, `SESSION_COOKIE_SECURE`. See
+`.env.example`.
+
+## Security invariants
+
+These are load-bearing — a change that breaks one is a vulnerability, not a bug.
+
+- **Build every request path with `` cincPath`…` `` (`lib/cinc/path.ts`).** Names
+  come from route params (Next decodes `%2F` into a real `/`) and from form
+  fields, and the path is what we *sign* — an unchecked name aims a webui-signed
+  request at an endpoint the UI never exposes, e.g. `/nodes/<name>/_acl`.
+  `CincRequestOptions.path` is a branded type, so a plain string won't compile;
+  `cincRequest` vets `org` and `user` itself.
+- **A Server Action is a public endpoint and its parameter types are erased.**
+  Validate/allowlist what you write (see `pickProfileFields` in
+  `app/profile/actions.ts`) — never spread a caller's object onto a server record.
+  Only `.bind(null, …)` arguments are protected (Next encrypts that closure).
+- **Route handlers that mint or destroy a session call `isCrossSite`**
+  (`lib/same-origin.ts`) and require `application/json`. SameSite=Lax stops a
+  cross-site POST from *sending* the cookie but not from *obtaining* one, and
+  `Request.json()` ignores Content-Type — that pair is login CSRF.
+- **The session cookie's Secure flag comes from config, never from a request
+  header.** `X-Forwarded-Proto`/`Referer` are attacker-supplied.
+- **The CSP nonce lives in `proxy.ts` and needs dynamic rendering**, pinned by
+  `export const dynamic = "force-dynamic"` in `app/layout.tsx`. A prerendered
+  page ships scripts with no nonce and the browser refuses to run them.
 
 ## Local testing against cinc-zero
 

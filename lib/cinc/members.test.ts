@@ -5,6 +5,7 @@ const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
 import { members } from "./members";
+import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
 
@@ -15,7 +16,7 @@ test("listUsers hits GET /users within the org", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/users",
+    path: cincPath`/users`,
   });
 });
 
@@ -26,7 +27,7 @@ test("invite POSTs the username to /association_requests", async () => {
     user: "alice",
     org: "acme",
     method: "POST",
-    path: "/association_requests",
+    path: cincPath`/association_requests`,
     body: { user: "bob" },
   });
 });
@@ -38,7 +39,7 @@ test("removeUser DELETEs /users/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "DELETE",
-    path: "/users/bob",
+    path: cincPath`/users/bob`,
   });
 });
 
@@ -49,7 +50,7 @@ test("getGroup hits GET /groups/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "GET",
-    path: "/groups/admins",
+    path: cincPath`/groups/admins`,
   });
 });
 
@@ -60,7 +61,7 @@ test("updateGroup PUTs the body to /groups/<name>", async () => {
     user: "alice",
     org: "acme",
     method: "PUT",
-    path: "/groups/admins",
+    path: cincPath`/groups/admins`,
     body: { users: ["bob"] },
   });
 });

@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 /**
  * Data bags are a two-level org-scoped object family:
@@ -18,14 +19,14 @@ export const dataBags = {
       user: u,
       org: o,
       method: "GET",
-      path: "/data",
+      path: cincPath`/data`,
     }),
   createBag: (u: string, o: string, name: string) =>
     cincRequest<unknown>({
       user: u,
       org: o,
       method: "POST",
-      path: "/data",
+      path: cincPath`/data`,
       body: { name },
     }),
   removeBag: (u: string, o: string, name: string) =>
@@ -33,28 +34,28 @@ export const dataBags = {
       user: u,
       org: o,
       method: "DELETE",
-      path: `/data/${name}`,
+      path: cincPath`/data/${name}`,
     }),
   listItems: (u: string, o: string, bag: string) =>
     cincRequest<Record<string, string>>({
       user: u,
       org: o,
       method: "GET",
-      path: `/data/${bag}`,
+      path: cincPath`/data/${bag}`,
     }),
   getItem: (u: string, o: string, bag: string, id: string) =>
     cincRequest<unknown>({
       user: u,
       org: o,
       method: "GET",
-      path: `/data/${bag}/${id}`,
+      path: cincPath`/data/${bag}/${id}`,
     }),
   putItem: (u: string, o: string, bag: string, id: string, body: Record<string, unknown>) =>
     cincRequest<unknown>({
       user: u,
       org: o,
       method: "PUT",
-      path: `/data/${bag}/${id}`,
+      path: cincPath`/data/${bag}/${id}`,
       body,
     }),
   createItem: (u: string, o: string, bag: string, body: Record<string, unknown>) =>
@@ -62,7 +63,7 @@ export const dataBags = {
       user: u,
       org: o,
       method: "POST",
-      path: `/data/${bag}`,
+      path: cincPath`/data/${bag}`,
       body,
     }),
   removeItem: (u: string, o: string, bag: string, id: string) =>
@@ -70,6 +71,6 @@ export const dataBags = {
       user: u,
       org: o,
       method: "DELETE",
-      path: `/data/${bag}/${id}`,
+      path: cincPath`/data/${bag}/${id}`,
     }),
 };

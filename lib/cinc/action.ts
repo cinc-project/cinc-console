@@ -1,6 +1,7 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { isCincError } from "./errors";
+import { isUnsafePathError } from "./path";
 
 export type ActionResult = { ok: true } | { error: string };
 
@@ -28,6 +29,9 @@ export async function runAction(
       if (e.conflict) return { error: "already exists" };
       return { error: `server error (${e.status})` };
     }
+    // A name that can't be addressed safely (see path.ts) is user input, not a
+    // crash: report it like any other rejected mutation.
+    if (isUnsafePathError(e)) return { error: "invalid name" };
     throw e;
   }
 }

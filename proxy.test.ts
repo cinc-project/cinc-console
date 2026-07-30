@@ -44,3 +44,25 @@ test("an authenticated request passes through", () => {
   const res = proxy(req("/orgs/acme/nodes", { session: true }));
   expect(location(res)).toBeNull();
 });
+
+test("a passed-through response carries a nonce CSP that locks the page down", () => {
+  const csp = proxy(req("/orgs/acme/nodes", { session: true })).headers.get(
+    "content-security-policy",
+  )!;
+  expect(csp).toMatch(/script-src [^;]*'nonce-[^']+' 'strict-dynamic'/);
+  // No framing, no <base> hijack, no plugin content, no off-site form posts.
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).toContain("object-src 'none'");
+  expect(csp).toContain("base-uri 'self'");
+  expect(csp).toContain("form-action 'self'");
+  // Production must not need eval; that's a dev-only React affordance.
+  expect(csp).not.toContain("unsafe-eval");
+});
+
+test("each request gets its own nonce", () => {
+  const nonceOf = (res: Response) =>
+    res.headers.get("content-security-policy")!.match(/'nonce-([^']+)'/)![1];
+  const a = nonceOf(proxy(req("/orgs/acme/nodes", { session: true })));
+  const b = nonceOf(proxy(req("/orgs/acme/nodes", { session: true })));
+  expect(a).not.toBe(b);
+});

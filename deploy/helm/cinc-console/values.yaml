@@ -20,10 +20,12 @@ sessionTtlSeconds: 28800
 # Node environment (production or development). In production, secure cookies are used.
 # In development, cookies are insecure (http). Set to development to debug session issues.
 nodeEnv: "production"
-# Trust X-Forwarded-Proto header from reverse proxy for secure cookie detection.
-# Set to true if your Ingress forwards X-Forwarded-Proto: https for HTTPS connections.
-# This is required in production when behind a reverse proxy with HTTPS termination.
-trustProxy: true
+# Secure flag on the session cookie. Leave empty to follow nodeEnv (on in
+# production, off in development) — correct for any HTTPS deployment, including
+# behind an Ingress that terminates TLS. Set to false ONLY for a deliberate
+# plain-HTTP deployment: the flag is never inferred from request headers, because
+# X-Forwarded-Proto is attacker-supplied unless every path to the pod strips it.
+cookieSecure: ""
 # Signing actor for POST /authenticate_user. This endpoint is global (non-org)
 # and its ACL only grants "create" to globally-privileged actors. Set this to
 # "pivotal" (or another global admin) so the webui-signed request is accepted.

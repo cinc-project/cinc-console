@@ -1,5 +1,6 @@
 import "server-only";
 import { cincRequest } from "./client";
+import { cincPath } from "./path";
 
 export type CreatedClient = { name: string; privateKey: string };
 
@@ -20,7 +21,7 @@ export async function createClient(
     user,
     org,
     method: "POST",
-    path: "/clients",
+    path: cincPath`/clients`,
     body: { name, create_key: true },
   });
   const privateKey = res.chef_key?.private_key ?? res.private_key ?? "";
@@ -33,5 +34,5 @@ export async function deleteClient(
   org: string,
   name: string,
 ): Promise<void> {
-  await cincRequest({ user, org, method: "DELETE", path: `/clients/${name}` });
+  await cincRequest({ user, org, method: "DELETE", path: cincPath`/clients/${name}` });
 }

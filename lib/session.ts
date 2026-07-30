@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { getIronSession, type IronSession, type SessionOptions } from "iron-session";
 import { getConfig } from "./config";
 
@@ -9,7 +9,22 @@ export type SessionData = {
   loginAt?: number;
 };
 
-export function buildSessionOptions(isSecure: boolean = process.env.NODE_ENV === "production"): SessionOptions {
+/**
+ * Whether to mark the session cookie Secure.
+ *
+ * This is deliberately NOT derived from the request. `X-Forwarded-Proto` and
+ * `Referer` are attacker-supplied unless every path to the app strips them, so
+ * letting them decide would let a request talk the app out of the Secure flag —
+ * and a session cookie without Secure is one plaintext request away from being
+ * sniffed. So: on in production, off in development, and only an explicit
+ * operator opt-out (`SESSION_COOKIE_SECURE=false`, for a deliberate plain-HTTP
+ * deployment) can change it.
+ */
+export function cookieSecure(): boolean {
+  return getConfig().cookieSecure ?? process.env.NODE_ENV === "production";
+}
+
+export function buildSessionOptions(isSecure: boolean = cookieSecure()): SessionOptions {
   const cfg = getConfig();
 
   return {
@@ -25,42 +40,10 @@ export function buildSessionOptions(isSecure: boolean = process.env.NODE_ENV ===
   };
 }
 
-/**
- * Determine whether the current request should receive a Secure session cookie.
- * In production we honor reverse-proxy proto headers when present.
- */
-export async function shouldUseSecureCookies(): Promise<boolean> {
-  if (process.env.NODE_ENV !== "production") return false;
-
-  const h = await headers();
-  const forwardedProto = h
-    .get("x-forwarded-proto")
-    ?.split(",")[0]
-    ?.trim()
-    .toLowerCase();
-  if (forwardedProto) return forwardedProto === "https";
-
-  const forwardedSsl = h.get("x-forwarded-ssl")?.trim().toLowerCase();
-  if (forwardedSsl) return forwardedSsl === "on";
-
-  const originLike = h.get("origin") ?? h.get("referer");
-  if (originLike) {
-    try {
-      return new URL(originLike).protocol === "https:";
-    } catch {
-      // Ignore parse failures and fall through to the safe default.
-    }
-  }
-
-  // No forwarding hints available: default to secure in production.
-  return true;
-}
-
 export async function getSession(): Promise<IronSession<SessionData>> {
   // Built lazily (not at module load) so `next build` doesn't require runtime
   // config to be present when route modules are imported.
-  const secure = await shouldUseSecureCookies();
-  return getIronSession<SessionData>(await cookies(), buildSessionOptions(secure));
+  return getIronSession<SessionData>(await cookies(), buildSessionOptions());
 }
 
 export class Unauthorized extends Error {
