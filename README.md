@@ -20,7 +20,7 @@ gates editing in the UI, exactly as it would for `knife`.
 - **Stateless sessions.** The session is an encrypted cookie holding only the
   username, so the console scales to N replicas with no Redis or database.
 - **v1.3 signing.** The signing module is a faithful port of the Go
-  [`cinc-api`](https://github.com/tas50/cinc-api) implementation, pinned by a
+  [`cinc-api`](https://github.com/cinc-project/cinc-api) implementation, pinned by a
   byte-for-byte conformance test.
 - **Pluggable authentication.** Local login checks the password against the
   Cinc server's own `/authenticate_user` by default; optionally bind against
@@ -91,7 +91,7 @@ example `imagePullSecrets` or `nodeEnv`) without changing shared defaults.
 ## Building images
 
 Official images are published to GitHub Container Registry as
-`ghcr.io/tas50/cinc-console` via the project's automated build/release
+`ghcr.io/cinc-project/cinc-console` via the project's automated build/release
 workflows. In most cases, use those images directly.
 
 Build your own image when you need environment-specific behavior, such as:

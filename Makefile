@@ -1,7 +1,7 @@
 # cinc-console developer tasks.
 # Run `make help` for a list.
 
-IMAGE ?= ghcr.io/tas50/cinc-console
+IMAGE ?= ghcr.io/cinc-project/cinc-console
 TAG ?= dev
 CHART := deploy/helm/cinc-console
 
