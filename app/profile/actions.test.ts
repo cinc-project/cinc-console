@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test, vi, beforeEach } from "vitest";
 import { CincError } from "@/lib/cinc/errors";
+import type { ProfileDetails } from "./actions";
 
 const { session } = vi.hoisted(() => ({
   session: { displayName: "", save: vi.fn() },

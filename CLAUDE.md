@@ -98,7 +98,9 @@ permission" (it never substitutes its own check).
 `pnpm-workspace.yaml`'s `overrides` forces patched versions of transitive
 packages whose parent pins a vulnerable range — currently `postcss` and
 `sharp`, both pinned by `next` (`postcss 8.4.31` exactly, `sharp ^0.34.5`), so
-no `next` upgrade fixes them. Each override is scoped to the vulnerable range
+no `next` upgrade fixes them — plus `undici` 7.x, which `jsdom` (dev only)
+already resolves to; the override keeps it at the patched `^7.29.1` and leaves
+our direct `undici` 8.x alone. Each override is scoped to the vulnerable range
 (`"postcss@<8.5.18": ">=8.5.18"`), so it stops applying once upstream catches
 up. Drop an entry when `next` bumps its own pin past the advisory; check with
 `pnpm why <pkg>` and `pnpm audit`.

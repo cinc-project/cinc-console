@@ -39,7 +39,7 @@ test("safeGet rethrows non-CincError so it isn't masked as a read error", async 
 test("explainRead expands known errors into actionable guidance", () => {
   expect(explainRead("forbidden")).toMatch(/permission/i);
   expect(explainRead("not found")).toMatch(/no longer exists|don't have access/i);
-  expect(explainRead("server error (502)")).toMatch(/502.*transient/is);
+  expect(explainRead("server error (502)")).toMatch(/502[\s\S]*transient/i);
   // unknown strings pass through unchanged
   expect(explainRead("something odd")).toBe("something odd");
 });

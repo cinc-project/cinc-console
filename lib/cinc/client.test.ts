@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 test("signs as webui key impersonating the user with web source", async () => {
-  const fetchMock = vi.fn(
+  const fetchMock = vi.fn<typeof fetch>(
     async () =>
       new Response(JSON.stringify({ ok: 1 }), {
         status: 200,
@@ -101,7 +101,7 @@ test("refuses to sign a path a name has broken out of", async () => {
 });
 
 test("omits the org prefix for top-level paths", async () => {
-  const fetchMock = vi.fn(
+  const fetchMock = vi.fn<typeof fetch>(
     async () => new Response(JSON.stringify({}), { status: 200 }),
   );
   vi.stubGlobal("fetch", fetchMock);

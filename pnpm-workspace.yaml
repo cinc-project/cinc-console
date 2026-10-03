@@ -7,3 +7,4 @@ ignoredBuiltDependencies:
 overrides:
   postcss@<8.5.18: ">=8.5.18"
   sharp@<0.35.0: ">=0.35.0"
+  undici@>=7.0.0 <7.29.1: ^7.29.1

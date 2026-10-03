@@ -62,7 +62,7 @@ describe("package.json target", () => {
     const after = t.set(PACKAGE_JSON, "0.5.0");
     const changed = after
       .split("\n")
-      .filter((line, i) => line !== PACKAGE_JSON.split("\n")[i]);
+      .filter((line: string, i: number) => line !== PACKAGE_JSON.split("\n")[i]);
     expect(changed).toEqual(['  "version": "0.5.0",']);
   });
 

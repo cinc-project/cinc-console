@@ -5,7 +5,7 @@ import { GroupMembersEditor } from "./group-members-editor";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-const onSave = vi.fn(async () => ({ ok: true as const }));
+const onSave = vi.fn<(json: string) => Promise<{ ok: true }>>(async () => ({ ok: true }));
 beforeEach(() => onSave.mockClear());
 
 const data = {
