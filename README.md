@@ -47,7 +47,8 @@ private key is shown once at creation and is never retrievable again).
 | `CINC_SERVER_URL` | yes | Base URL of the Cinc/Chef server, e.g. `https://chef.example.com` |
 | `CINC_WEBUI_KEY` | conditional | Inline contents of `webui_priv.pem` (PEM). Required when `CINC_WEBUI_KEY_FILE` is not set. |
 | `CINC_WEBUI_KEY_FILE` | conditional | Path to `webui_priv.pem`. Required when `CINC_WEBUI_KEY` is not set. |
-| `SESSION_SECRET` | yes | 32+ char secret used to encrypt the session cookie |
+| `SESSION_SECRET` | conditional | 32+ char secret used to encrypt the session cookie. Required when `SESSION_SECRET_FILE` is not set. |
+| `SESSION_SECRET_FILE` | conditional | Path to a file holding the session secret (Docker/Compose secrets, Kubernetes secret volumes). One trailing newline is stripped, so `echo secret > file` works; the rest must be 32+ chars. Required when `SESSION_SECRET` is not set; `SESSION_SECRET` wins if both are set. |
 | `CINC_CA_CERT` | no | Inline CA bundle (PEM) to trust a self-signed server |
 | `CINC_CA_CERT_FILE` | no | Path to a CA bundle (PEM) to trust a self-signed server |
 | `CINC_SSL_NO_VERIFY` | no | `true` to skip TLS verification (dev only) |

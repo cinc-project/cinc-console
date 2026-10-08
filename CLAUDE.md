@@ -143,7 +143,10 @@ feature is not done until it works with a keyboard and a screen reader. Concrete
 ## Configuration
 
 Required env (validated at boot, fail-fast): `CINC_SERVER_URL`,
-`CINC_WEBUI_KEY` (PEM), `SESSION_SECRET` (32+ chars). Optional: `CINC_CA_CERT`,
+`CINC_WEBUI_KEY` (PEM), `SESSION_SECRET` (32+ chars). Each also takes a
+`_FILE` variant (`CINC_WEBUI_KEY_FILE`, `SESSION_SECRET_FILE`); the inline value
+wins if both are set, and `SESSION_SECRET_FILE` has one trailing newline
+stripped (`echo secret > file`). Optional: `CINC_CA_CERT`,
 `CINC_SSL_NO_VERIFY`, `SESSION_TTL_SECONDS`, `SESSION_COOKIE_SECURE`. See
 `.env.example`.
 

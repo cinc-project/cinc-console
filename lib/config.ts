@@ -6,7 +6,10 @@ const schema = z.object({
   // Provide the webui key inline OR via a file path (CINC_WEBUI_KEY_FILE).
   CINC_WEBUI_KEY: z.string().min(1).optional(),
   CINC_WEBUI_KEY_FILE: z.string().optional(),
-  SESSION_SECRET: z.string().min(32, "must be >= 32 chars"),
+  // Provide the session secret inline OR via a file path (SESSION_SECRET_FILE).
+  // Its >= 32 chars rule is checked on the resolved value in loadConfig.
+  SESSION_SECRET: z.string().optional(),
+  SESSION_SECRET_FILE: z.string().optional(),
   CINC_CA_CERT: z.string().optional(),
   CINC_CA_CERT_FILE: z.string().optional(),
   CINC_SSL_NO_VERIFY: z.enum(["true", "false"]).optional(),
@@ -95,6 +98,19 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     issues.push("CINC_WEBUI_KEY: set CINC_WEBUI_KEY or CINC_WEBUI_KEY_FILE");
   }
 
+  // The session secret may be inline (SESSION_SECRET) or a file
+  // (SESSION_SECRET_FILE). A file loses one trailing newline, since
+  // `echo secret > file` adds one.
+  let sessionSecret = env.SESSION_SECRET;
+  if (!sessionSecret && env.SESSION_SECRET_FILE) {
+    sessionSecret = readPem(env.SESSION_SECRET_FILE, "SESSION_SECRET_FILE").replace(/\r?\n$/, "");
+  }
+  if (!sessionSecret) {
+    issues.push("SESSION_SECRET: set SESSION_SECRET or SESSION_SECRET_FILE");
+  } else if (sessionSecret.length < 32) {
+    issues.push("SESSION_SECRET: must be >= 32 chars");
+  }
+
   let caCert = env.CINC_CA_CERT;
   if (!caCert && env.CINC_CA_CERT_FILE) {
     caCert = readPem(env.CINC_CA_CERT_FILE, "CINC_CA_CERT_FILE");
@@ -128,7 +144,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   return {
     serverUrl: e.CINC_SERVER_URL.replace(/\/$/, ""),
     webuiKey: webuiKey!,
-    sessionSecret: e.SESSION_SECRET,
+    sessionSecret: sessionSecret!,
     caCert,
     sslNoVerify: e.CINC_SSL_NO_VERIFY === "true",
     sessionTtlSeconds: e.SESSION_TTL_SECONDS ?? 28800,

@@ -11,6 +11,10 @@ All notable changes to this project are documented in this file.
   an external directory instead of the Cinc server's own password check. The
   authenticated username must already exist as a Cinc user object — LDAP
   never provisions one.
+- Added `SESSION_SECRET_FILE` so the session secret can be read from a file
+  (Docker/Compose secrets, Kubernetes secret volumes), like
+  `CINC_WEBUI_KEY_FILE`. One trailing newline is stripped; `SESSION_SECRET`
+  wins if both are set.
 - Hid the "Change password" action on the profile page for LDAP-authenticated
   users, since their password is managed by the directory.
 

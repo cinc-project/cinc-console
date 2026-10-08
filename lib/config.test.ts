@@ -1,8 +1,18 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { loadConfig } from "./config";
 
 const KEY_FILE = join(process.cwd(), "lib/cinc/__fixtures__/test_key.pem");
+
+const tmp = mkdtempSync(join(tmpdir(), "cinc-config-test-"));
+let tmpCount = 0;
+function secretFile(content: string): string {
+  const path = join(tmp, `secret-${tmpCount++}`);
+  writeFileSync(path, content);
+  return path;
+}
 
 const base = {
   CINC_SERVER_URL: "https://s",
@@ -41,6 +51,56 @@ test("rejects a too-short session secret", () => {
   expect(() => loadConfig({ ...base, SESSION_SECRET: "short" })).toThrow(
     /SESSION_SECRET/,
   );
+});
+
+test("reads the session secret from SESSION_SECRET_FILE", () => {
+  const secret = "s".repeat(40);
+  const c = loadConfig({
+    ...base,
+    SESSION_SECRET: undefined,
+    SESSION_SECRET_FILE: secretFile(secret),
+  });
+  expect(c.sessionSecret).toBe(secret);
+});
+
+test("strips exactly one trailing newline from SESSION_SECRET_FILE", () => {
+  const secret = "s".repeat(32);
+  const env = { ...base, SESSION_SECRET: undefined };
+  expect(
+    loadConfig({ ...env, SESSION_SECRET_FILE: secretFile(`${secret}\n`) }).sessionSecret,
+  ).toBe(secret);
+  expect(
+    loadConfig({ ...env, SESSION_SECRET_FILE: secretFile(`${secret}\r\n`) }).sessionSecret,
+  ).toBe(secret);
+  expect(
+    loadConfig({ ...env, SESSION_SECRET_FILE: secretFile(`${secret}\n\n`) }).sessionSecret,
+  ).toBe(`${secret}\n`);
+});
+
+test("inline SESSION_SECRET wins over SESSION_SECRET_FILE", () => {
+  const c = loadConfig({
+    ...base,
+    SESSION_SECRET: "i".repeat(32),
+    SESSION_SECRET_FILE: secretFile("f".repeat(32)),
+  });
+  expect(c.sessionSecret).toBe("i".repeat(32));
+});
+
+test("errors clearly when SESSION_SECRET_FILE is unreadable", () => {
+  expect(() =>
+    loadConfig({ ...base, SESSION_SECRET: undefined, SESSION_SECRET_FILE: "/no/such/secret" }),
+  ).toThrow(/SESSION_SECRET_FILE could not read/);
+});
+
+test("rejects a too-short secret from SESSION_SECRET_FILE", () => {
+  const env = { ...base, SESSION_SECRET: undefined };
+  expect(() =>
+    loadConfig({ ...env, SESSION_SECRET_FILE: secretFile("short\n") }),
+  ).toThrow(/SESSION_SECRET: must be >= 32 chars/);
+  // The stripped newline does not count towards the 32 chars.
+  expect(() =>
+    loadConfig({ ...env, SESSION_SECRET_FILE: secretFile(`${"s".repeat(31)}\n`) }),
+  ).toThrow(/SESSION_SECRET: must be >= 32 chars/);
 });
 
 test("reads the webui key from CINC_WEBUI_KEY_FILE", () => {
