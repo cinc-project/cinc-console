@@ -88,6 +88,21 @@ helm upgrade --install cinc-console deploy/helm/cinc-console \
 `values-local.yaml` is gitignored so you can keep local dev settings (for
 example `imagePullSecrets` or `nodeEnv`) without changing shared defaults.
 
+## Deploy with Docker Compose
+
+For a single host, `deploy/compose/` mirrors the chart with Docker Compose:
+same hardening, secrets mounted as files, and an optional Caddy service for TLS.
+
+```bash
+cd deploy/compose
+cp cinc-console.env.example cinc-console.env   # set CINC_SERVER_URL
+# add secrets/webui_priv.pem and secrets/session_secret, see the README there
+docker compose up -d --build
+```
+
+See [deploy/compose/README.md](deploy/compose/README.md) for secrets, TLS,
+LDAP, and the differences from the chart.
+
 ## Building images
 
 Official images are published to GitHub Container Registry as

@@ -1,0 +1,4 @@
+# Local configuration and secrets for the Compose example
+cinc-console.env
+secrets/
+certs/

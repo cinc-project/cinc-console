@@ -72,6 +72,7 @@ lib/session.ts       stateless encrypted iron-session cookie (username only)
 lib/guard.ts         currentUser() — redirects to /login in a Server Component
 components/          AppShell, ResourceTable, ObjectEditor, JsonEditor, NewObjectForm, ui/*
 deploy/helm/         chart; Dockerfile + scripts/smoke.sh at root
+deploy/compose/      Docker Compose equivalent of the chart (keep in step)
 ```
 
 Request path: client → route handler / server action → `lib/cinc` (sign with

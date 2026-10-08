@@ -56,6 +56,9 @@ All notable changes to this project are documented in this file.
 - Extended the NetworkPolicy egress rules to allow LDAP/LDAPS ports (389/636,
   plus `ldap.extraNetworkPolicyPorts` for non-standard ports) when
   `authMode: ldap`.
+- Added a Docker Compose example (`deploy/compose/`) for single-host
+  deployments: same hardening and resource limits as the chart, secrets
+  mounted as files, and an optional Caddy service for TLS.
 
 ## 0.5.0 - 2026-07-28
 
