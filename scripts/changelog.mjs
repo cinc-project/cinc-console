@@ -44,10 +44,11 @@ export function joinSections(preamble, sections) {
   return preamble + sections.map((s) => `${s.heading}\n${s.body}`).join("");
 }
 
-// Whitespace trimming uses String#trimStart/trimEnd, not `/^\s*\n/` and
-// `/\s+$/`: the unanchored-start `\s+$` backtracks quadratically on a long
-// whitespace run that isn't at the end (code-scanning #31/#32). The trim
-// methods strip the same characters as `\s` in linear time.
+// Whitespace trimming uses String#trimStart/trimEnd rather than regexes: an
+// end-anchored "one or more whitespace" regex backtracks quadratically on a
+// long whitespace run that isn't at the end (code-scanning #31/#32). The trim
+// methods strip the same characters as the regex whitespace class, in linear
+// time.
 
 /** Drop leading blank lines, keeping the first non-blank line's indentation. */
 function stripLeadingBlankLines(text) {
