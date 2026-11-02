@@ -98,11 +98,11 @@ permission" (it never substitutes its own check).
 ## Dependency overrides
 
 `pnpm-workspace.yaml`'s `overrides` forces patched versions of transitive
-packages whose parent pins a vulnerable range — currently `postcss` and
-`sharp`, both pinned by `next` (`postcss 8.4.31` exactly, `sharp ^0.34.5`), so
-no `next` upgrade fixes them — plus `undici` 7.x, which `jsdom` (dev only)
-already resolves to; the override keeps it at the patched `^7.29.1` and leaves
-our direct `undici` 8.x alone. `minimatch` 10.x (eslint, typescript-eslint;
+packages whose parent pins a vulnerable range — currently `undici` 7.x, which
+`jsdom` (dev only) already resolves to; the override keeps it at the patched
+`^7.29.1` and leaves our direct `undici` 8.x alone. (The old `postcss` and
+`sharp` overrides were dropped once `next` 16.4.4 pinned `postcss 8.5.23` and
+`sharp ^0.35.5` itself.) `minimatch` 10.x (eslint, typescript-eslint;
 dev only) is lifted to `^11.0.1`, which has the same exports and only drops
 Node 18. The 3.x copies inside eslint 9 (`@eslint/config-array`,
 `@eslint/eslintrc`) are deliberately **not** overridden: 3.x's CommonJS export
