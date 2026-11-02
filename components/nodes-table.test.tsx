@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { NodesTable } from "./nodes-table";
 import type { NodeSummary } from "@/lib/cinc/fleet";
@@ -92,4 +93,18 @@ describe("NodesTable", () => {
       "/orgs/acme/nodes/new",
     );
   });
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(
+    <NodesTable
+      {...base}
+      nodes={[
+        node({ name: "web1", chefVersion: "15.1.0", clientStatus: "eol" }),
+        node({ name: "db1", lastCheckIn: null, chefVersion: null, clientStatus: "unknown" }),
+        node({ name: "app1", status: "missing", missing: true }),
+      ]}
+    />,
+  );
+  expect(await axe(container)).toHaveNoViolations();
 });

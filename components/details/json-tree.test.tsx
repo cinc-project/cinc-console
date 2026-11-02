@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { JsonTree } from "./json-tree";
 
@@ -37,4 +38,11 @@ describe("JsonTree", () => {
     render(<JsonTree value={{}} />);
     expect(screen.getByText("{}")).toBeInTheDocument();
   });
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(
+    <JsonTree value={{ platform: "ubuntu", kernel: { name: "Linux" }, tags: ["a"] }} />,
+  );
+  expect(await axe(container)).toHaveNoViolations();
 });

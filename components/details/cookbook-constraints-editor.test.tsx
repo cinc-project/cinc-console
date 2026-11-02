@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { CookbookConstraintsEditor } from "./cookbook-constraints-editor";
 
@@ -77,4 +78,10 @@ test("adds a constraint via the operator dropdown and saves it as a string", asy
     nginx: ">= 1.0.0",
     apache2: "~> 2.1",
   });
+});
+
+test("has no axe violations in edit mode", async () => {
+  const { container } = render(<CookbookConstraintsEditor data={data} onSave={onSave} />);
+  await enterEdit();
+  expect(await axe(container)).toHaveNoViolations();
 });

@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { GroupMembersEditor } from "./group-members-editor";
 
@@ -58,4 +59,10 @@ test("Cancel reverts without saving", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.getByRole("button", { name: /edit members/i })).toBeInTheDocument();
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test("has no axe violations in edit mode", async () => {
+  const { container } = render(<GroupMembersEditor data={data} onSave={onSave} />);
+  await enterEdit();
+  expect(await axe(container)).toHaveNoViolations();
 });

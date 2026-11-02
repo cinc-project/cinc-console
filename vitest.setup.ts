@@ -1,5 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
+import * as axeMatchers from "vitest-axe/matchers";
+
+// expect(await axe(container)).toHaveNoViolations() — the shared runner is in
+// test/axe.ts, the matcher's types in test/vitest-axe.d.ts.
+expect.extend(axeMatchers);
 
 // revalidatePath/revalidateTag need a Next request/static-generation scope that
 // doesn't exist under vitest; stub them so server actions can be unit-tested.

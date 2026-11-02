@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { DescriptionEditor } from "./description-editor";
 
@@ -36,4 +37,10 @@ test("Cancel reverts and exits without saving", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.getByRole("button", { name: /edit description/i })).toBeInTheDocument();
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test("has no axe violations in edit mode", async () => {
+  const { container } = render(<DescriptionEditor data={data} onSave={onSave} />);
+  await userEvent.click(screen.getByRole("button", { name: /edit description/i }));
+  expect(await axe(container)).toHaveNoViolations();
 });

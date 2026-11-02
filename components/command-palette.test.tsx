@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { CommandPalette } from "./command-palette";
 
@@ -63,4 +64,10 @@ test("Escape closes without navigating", async () => {
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(push).not.toHaveBeenCalled();
+});
+
+test("has no axe violations when open", async () => {
+  const { baseElement } = render(<CommandPalette org="acme" orgs={orgs} />);
+  await userEvent.click(screen.getByRole("button", { name: /command palette/i }));
+  expect(await axe(baseElement)).toHaveNoViolations();
 });

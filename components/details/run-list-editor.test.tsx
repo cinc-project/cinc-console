@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { RunListEditor } from "./run-list-editor";
 
@@ -73,4 +74,10 @@ test("Save is disabled until there are changes", async () => {
   render(<RunListEditor data={data} onSave={onSave} />);
   await enterEdit();
   expect(screen.getByRole("button", { name: "Save run list" })).toBeDisabled();
+});
+
+test("has no axe violations in edit mode", async () => {
+  const { container } = render(<RunListEditor data={data} onSave={onSave} />);
+  await enterEdit();
+  expect(await axe(container)).toHaveNoViolations();
 });

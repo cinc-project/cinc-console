@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { CreateObjectForm } from "./create-object-form";
 
@@ -114,4 +115,11 @@ describe("CreateObjectForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/i);
     expect(nav.push).not.toHaveBeenCalled();
   });
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(
+    <CreateObjectForm kind="role" onCreate={vi.fn()} backHref="/orgs/acme/roles" />,
+  );
+  expect(await axe(container)).toHaveNoViolations();
 });
