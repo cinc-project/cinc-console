@@ -24,6 +24,10 @@ dev: ## Run the dev server (http://localhost:3000)
 test: ## Run unit tests
 	pnpm test
 
+.PHONY: e2e
+e2e: ## Run Playwright e2e tests against a throwaway cinc-server-ng
+	bash scripts/e2e.sh
+
 .PHONY: lint
 lint: ## Run eslint
 	pnpm lint

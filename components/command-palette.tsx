@@ -153,11 +153,16 @@ export function CommandPalette({ org, orgs }: { org: string; orgs: Org[] }) {
         type="button"
         onClick={openPalette}
         aria-keyshortcuts="Meta+K Control+K"
-        aria-label="Open command palette (Command-K)"
         className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-2 py-1 text-xs text-muted hover:border-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
+        {/* The accessible name must start with the visible label (WCAG 2.5.3
+            Label in Name), so speech users can say "Jump to". */}
         <span>Jump to…</span>
-        <kbd className="rounded border border-border bg-surface px-1 font-sans">
+        <span className="sr-only"> (command palette)</span>
+        <kbd
+          aria-hidden="true"
+          className="rounded border border-border bg-surface px-1 font-sans"
+        >
           ⌘K
         </kbd>
       </button>

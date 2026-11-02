@@ -1,0 +1,8 @@
+{
+  "groupname": "admins",
+  "name": "admins",
+  "actors": { "users": ["anna"], "groups": [], "clients": [] },
+  "users": ["anna"],
+  "clients": [],
+  "groups": []
+}
