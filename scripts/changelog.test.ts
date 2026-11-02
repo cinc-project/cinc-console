@@ -121,6 +121,33 @@ describe("addRelease", () => {
     const after = addRelease(CHANGELOG, "0.5.0", "2026-07-29", ["Add a thing (#80)"]);
     expect(after).not.toContain("\n\n\n");
   });
+
+  it("drops leading blank lines of absorbed prose but keeps its first line's indent", () => {
+    const base = `${PREAMBLE}## Unreleased\n\n \t\n\n  indented note\n\n\n`;
+    const after = addRelease(base, "0.5.0", "2026-07-29", ["Add a thing (#80)"]);
+    expect(after).toContain(
+      "## 0.5.0 - 2026-07-29\n\n  indented note\n\n### Merged pull requests\n",
+    );
+  });
+
+  it("treats a whitespace-only Unreleased section as having no prose", () => {
+    const base = `${PREAMBLE}## Unreleased\n\n  \n\t\n`;
+    const after = addRelease(base, "0.5.0", "2026-07-29", ["Add a thing (#80)"]);
+    expect(after).toBe(
+      `${PREAMBLE}## 0.5.0 - 2026-07-29\n\n### Merged pull requests\n\n- Add a thing (#80)\n\n`,
+    );
+  });
+
+  // Code-scanning #31/#32: `/\s+$/` backtracks quadratically on a long
+  // whitespace run that isn't at the end (200k spaces took ~30s). Trimming
+  // must stay linear however the Unreleased prose is shaped.
+  it("trims a long interior whitespace run in linear time", () => {
+    const base = `${PREAMBLE}## Unreleased\n\n- a${" ".repeat(200_000)}b\n`;
+    const start = performance.now();
+    const after = addRelease(base, "0.5.0", "2026-07-29", ["Add a thing (#80)"]);
+    expect(performance.now() - start).toBeLessThan(1_000);
+    expect(after).toContain(`- a${" ".repeat(200_000)}b\n\n### Merged pull requests`);
+  });
 });
 
 describe("extractSection", () => {
