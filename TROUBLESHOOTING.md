@@ -241,24 +241,25 @@ By allowing fallback to a privileged actor (pivotal or webui), we ensure that th
 - If you're using Cinc server versions that don't enforce ACLs on /authenticate_user
 - If you update the server ACLs to permit webui access (alternative fix)
 
-### Testing Against cinc-zero
+### Testing Against cinc-server-ng
 
-When testing against cinc-zero (v0.7.0+):
+When testing against [cinc-server-ng](https://github.com/cinc-project/cinc-server-ng)
+(formerly cinc-zero), run it with auth on, not with `--no-auth` or `make run-dev`:
 
 ```bash
-# cinc-zero in one terminal
-cinc-zero --state dev/test-repo --key-out /tmp/webui.pem
+# cinc-server-ng in one terminal, from its repo (listens on 127.0.0.1:8889)
+cinc-server-ng --state dev/test-repo --key-out /tmp/webui.pem
 
-# Then in cinc-console with fallback disabled (default):
-CINC_SERVER_URL=http://127.0.0.1:8890 \
+# Then in cinc-console with fallback disabled (default), and log in as tim / tim123:
+CINC_SERVER_URL=http://127.0.0.1:8889 \
 CINC_WEBUI_KEY=$(cat /tmp/webui.pem) \
 pnpm dev
 ```
 
-If you encounter 403 errors with cinc-zero, try:
+If you encounter 403 errors at login with cinc-server-ng, try:
 
 ```bash
-CINC_SERVER_URL=http://127.0.0.1:8890 \
+CINC_SERVER_URL=http://127.0.0.1:8889 \
 CINC_WEBUI_KEY=$(cat /tmp/webui.pem) \
 CINC_AUTH_ACTOR=pivotal \
 pnpm dev
