@@ -11,7 +11,8 @@ export default defineConfig({
     // A git worktree checked out under .claude/ is a second copy of this repo;
     // without this, vitest collects its tests too and they fail against the
     // outer node_modules.
-    exclude: [...configDefaults.exclude, ".claude/**"],
+    // e2e/ holds Playwright specs; they run under `make e2e`, not vitest.
+    exclude: [...configDefaults.exclude, ".claude/**", "e2e/**"],
   },
   resolve: {
     alias: {

@@ -18,6 +18,7 @@ with a server username/password; the app signs every server request with the
 - `make test` / `pnpm test` — Vitest (run once). `pnpm test <name>` filters.
 - `make build` / `pnpm build` — production build (also the type check).
 - `make lint` — eslint. `make check` — test + lint + build (CI parity).
+- `make e2e` — Playwright (`e2e/`) against a throwaway cinc-server-ng (pinned in `scripts/e2e.sh`, seeded from `e2e/fixtures/state`).
 - `make smoke` — build the image and verify `/api/healthz` (needs Docker).
 - `make helm-lint` / `make helm-template` — validate the chart.
 - `make release-pr VERSION=0.5.0` — open the release PR. See `RELEASING.md`.

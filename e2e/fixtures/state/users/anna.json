@@ -1,0 +1,9 @@
+{
+  "username": "anna",
+  "display_name": "Anna Admin",
+  "first_name": "Anna",
+  "last_name": "Admin",
+  "email": "anna@example.com",
+  "password": "anna123",
+  "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApXgBQvGMOWghzz3N1c28\ndykZX6tRW9qtsANsOXwZtt6MjQMxTPkvvQjHfOo2MVLDdzxrrqzpwW5nUwTOQuLQ\nYBMfa+bDoc7YG+LwXB965EPBlbaqCFLEj1iCOooW4WCi1knu6ubVDEgZrzLK7VoE\nq7q63QS4jpToIDC6g76WV1cjS5nmdXWstzV1FOKXe6F8XytJ0Esx6EYehigSI0Nj\n59iVrKGP6NHgELSBc4dHIElMiPdc9dIL/1DNLmD0hCn5mF74u2YFoEESX3EnpEX8\nx6VHtua+4yEpkCSian0AGrMv8FQdQuIZfgktXtDHTaLcytPdfugXSzMKaGTXIki9\nYwIDAQAB\n-----END PUBLIC KEY-----"
+}
