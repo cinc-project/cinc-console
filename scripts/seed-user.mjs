@@ -20,7 +20,12 @@ if (!username || !password || !base || !key) {
   process.exit(2);
 }
 
-const contentHash = (b) => createHash("sha256").update(b).digest("base64");
+// X-Ops-Content-Hash: the v1.3 signing protocol requires a SHA-256 digest of
+// the request body in the signed canonical string (see lib/cinc/signing.ts).
+// The body happens to carry the new user's password, but this hash is never
+// stored or used to check a password; the Cinc server stores the password
+// itself. Swapping in bcrypt/argon2 would break the signature.
+const contentHash = (b) => createHash("sha256").update(b).digest("base64"); // nosemgrep: javascript-weak-password-hash
 // Regex runs on a fixed-format ISO-8601 string from toISOString(); `\d+` has no
 // nested quantifier, so backtracking is linear — not ReDoS-exploitable.
 const ts = new Date().toISOString().replace(/\.\d+Z$/, "Z"); // nosemgrep: javascript-redos-static
