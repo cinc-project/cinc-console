@@ -130,9 +130,9 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     if (!ldapBindPassword && env.LDAP_BIND_PASSWORD_FILE) {
       ldapBindPassword = readPem(env.LDAP_BIND_PASSWORD_FILE, "LDAP_BIND_PASSWORD_FILE");
     }
-    const hasBindDn = !!env.LDAP_BIND_DN;
-    const hasBindPassword = !!ldapBindPassword;
-    if (hasBindDn !== hasBindPassword) {
+    // Exactly one of the pair set is the error; both or neither is fine.
+    const bindPairCount = [env.LDAP_BIND_DN, ldapBindPassword].filter(Boolean).length;
+    if (bindPairCount === 1) {
       issues.push("LDAP_BIND_DN/LDAP_BIND_PASSWORD: set both or neither (anonymous search bind is allowed)");
     }
   }
