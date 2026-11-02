@@ -44,9 +44,22 @@ export function joinSections(preamble, sections) {
   return preamble + sections.map((s) => `${s.heading}\n${s.body}`).join("");
 }
 
+// Whitespace trimming uses String#trimStart/trimEnd, not `/^\s*\n/` and
+// `/\s+$/`: the unanchored-start `\s+$` backtracks quadratically on a long
+// whitespace run that isn't at the end (code-scanning #31/#32). The trim
+// methods strip the same characters as `\s` in linear time.
+
+/** Drop leading blank lines, keeping the first non-blank line's indentation. */
+function stripLeadingBlankLines(text) {
+  const lead = text.length - text.trimStart().length;
+  if (lead === 0) return text;
+  const nl = text.lastIndexOf("\n", lead - 1);
+  return nl === -1 ? text : text.slice(nl + 1);
+}
+
 /** Exactly one blank line after the heading and before the next one. */
 function normalizeBody(body) {
-  return `\n${body.replace(/^\s*\n/, "").replace(/\s+$/, "")}\n\n`;
+  return `\n${stripLeadingBlankLines(body).trimEnd()}\n\n`;
 }
 
 // Dependency bumps are split out so a release with a dozen Dependabot PRs does
@@ -76,7 +89,7 @@ export function addRelease(text, version, date, subjects) {
   const bullets = renderBullets(subjects);
 
   if (sections[0]?.heading.trim() === UNRELEASED) {
-    const prose = sections[0].body.replace(/\s+$/, "");
+    const prose = sections[0].body.trimEnd();
     sections[0] = {
       heading,
       body: normalizeBody(prose ? `${prose}\n\n${bullets}` : bullets),
