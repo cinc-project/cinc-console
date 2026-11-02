@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## 0.7.0 - 2026-11-02
 
 ### Added
 
@@ -63,6 +63,46 @@ All notable changes to this project are documented in this file.
 - Added a Docker Compose example (`deploy/compose/`) for single-host
   deployments: same hardening and resource limits as the chart, secrets
   mounted as files, and an optional Caddy service for TLS.
+
+### Merged pull requests
+
+- Allowlist the release version where tag-release writes GITHUB_OUTPUT (#133)
+- Express the LDAP bind pair check as a count in lib/config.ts (#132)
+- Replace quadratic whitespace regexes in changelog.mjs (#131)
+- Suppress weak-password-hash false positive in seed-user.mjs (#130)
+- Run CI on Node 26 to match the container image (#129)
+- Pin pnpm to 10.34.9 (#128)
+- Pin actions/checkout by SHA in the release workflows (#127)
+- Upgrade vitest to 5.0.5 (#126)
+- Bump next to 16.4.4 and refresh deps within their ranges (#125)
+- Patch vulnerable dev dependencies flagged by pnpm audit (#124)
+- test: add axe accessibility checks to component tests (#121)
+- Update local-testing docs for the cinc-zero -> cinc-server-ng rename (#123)
+- Add Playwright e2e tests against a real cinc-server-ng (#122)
+- Add tests for untested server modules and the fleet poll route (#120)
+- Remove duplicated nanoid@3.3.20 entries from pnpm-lock.yaml (#118)
+- Fix pnpm-lock.yaml after the vitest 4.1.11 bump (#107)
+- Add a Docker Compose deployment example (#108)
+- Add SESSION_SECRET_FILE to read the session secret from a file (#109)
+- Patch undici and Next.js security advisories (#102)
+- Point image and repository references at the cinc-project org (#90)
+
+### Dependency updates
+
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 5 updates (#97)
+- chore(deps-dev): bump jsdom from 29.1.1 to 30.1.3 (#87)
+- chore(deps): bump the production-dependencies group across 1 directory with 5 updates (#113)
+- chore(deps): bump the github-actions group across 1 directory with 4 updates (#117)
+- chore(deps): bump zod from 4.6.5 to 4.6.6 (#119)
+- chore(deps): bump undici from 8.11.2 to 8.12.2 (#115)
+- chore(deps): bump next from 16.3.8 to 16.4.1 (#116)
+- chore(deps-dev): bump @testing-library/jest-dom from 6.10.0 to 7.0.1 (#89)
+- chore(deps-dev): bump vitest from 4.1.10 to 4.1.11 (#94)
+- chore(deps): bump the production-dependencies group across 1 directory with 4 updates (#103)
+- chore(deps): bump the github-actions group across 1 directory with 5 updates (#98)
+- chore(deps): bump iron-session from 8.0.4 to 9.0.1 (#88)
+- chore(deps): bump github/codeql-action/upload-sarif (#84)
+- chore(deps): bump the production-dependencies group with 3 updates (#85)
 
 ## 0.5.0 - 2026-07-28
 
