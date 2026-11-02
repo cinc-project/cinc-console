@@ -102,7 +102,18 @@ packages whose parent pins a vulnerable range — currently `postcss` and
 `sharp`, both pinned by `next` (`postcss 8.4.31` exactly, `sharp ^0.34.5`), so
 no `next` upgrade fixes them — plus `undici` 7.x, which `jsdom` (dev only)
 already resolves to; the override keeps it at the patched `^7.29.1` and leaves
-our direct `undici` 8.x alone. Each override is scoped to the vulnerable range
+our direct `undici` 8.x alone. `minimatch` 10.x (eslint, typescript-eslint;
+dev only) is lifted to `^11.0.1`, which has the same exports and only drops
+Node 18. The 3.x copies inside eslint 9 (`@eslint/config-array`,
+`@eslint/eslintrc`) are deliberately **not** overridden: 3.x's CommonJS export
+is the callable `minimatch()` function and 11.x's is not, and the fix needs
+eslint 10, which `eslint-config-next`'s react/import/jsx-a11y plugins don't
+support yet. That leaves one moderate `pnpm audit` finding (GHSA-g3hv-75wg-m249,
+a DoS from crafted glob patterns, which only come from our own lint config).
+
+`vite` is a direct devDependency only so its version can be patched: it's a
+peer of `vitest` and `@vitejs/plugin-react`, so `pnpm update` never moves it on
+its own. Each override is scoped to the vulnerable range
 (`"postcss@<8.5.18": ">=8.5.18"`), so it stops applying once upstream catches
 up. Drop an entry when `next` bumps its own pin past the advisory; check with
 `pnpm why <pkg>` and `pnpm audit`.
