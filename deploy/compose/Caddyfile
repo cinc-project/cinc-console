@@ -1,0 +1,21 @@
+# TLS front end for cinc-console ("proxy" profile).
+{$CINC_CONSOLE_HOST} {
+	# Default: a certificate from your own PKI, placed in ./certs/
+	# Alternatives:
+	#   - remove the "tls" line   -> automatic public ACME certificate
+	#   - tls internal            -> Caddy's internal CA (testing only)
+	#   - corporate ACME with External Account Binding:
+	#       tls {
+	#           ca https://acme.example.com/directory
+	#           eab <key_id> <hmac_key>
+	#       }
+	tls /certs/fullchain.pem /certs/privkey.pem
+
+	encode zstd gzip
+	reverse_proxy cinc-console:3000
+
+	log {
+		output stdout
+		format json
+	}
+}

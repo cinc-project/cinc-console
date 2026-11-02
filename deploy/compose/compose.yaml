@@ -1,0 +1,169 @@
+# cinc-console with Docker Compose
+#
+# A single-host equivalent of the Helm chart in deploy/helm/cinc-console:
+#   Deployment + Service  -> service "cinc-console"
+#   ConfigMap             -> cinc-console.env (env_file)
+#   Secret                -> ./secrets/* (Compose secrets, mounted as files)
+#   Ingress (TLS)         -> service "caddy" (optional "proxy" profile)
+#
+# See README.md in this directory for the setup steps. In short:
+#   cp cinc-console.env.example cinc-console.env   # then edit it
+#   # put webui_priv.pem and a session secret in ./secrets/ (see README.md)
+#   docker compose up -d --build                    # console on 127.0.0.1:3000
+#   docker compose --profile proxy up -d --build    # plus Caddy for TLS
+
+name: cinc-console
+
+services:
+  cinc-console:
+    # Built from this checkout by default. To run a published release instead,
+    # delete the "build" key and point "image" at it, for example
+    #   image: ghcr.io/cinc-project/cinc-console:<version>
+    # The localhost/ prefix keeps Compose from looking for a same-named image
+    # on Docker Hub.
+    image: localhost/cinc-console:local
+    build:
+      context: ../..
+
+    restart: unless-stopped
+    init: true # tini as PID 1, for clean signal handling and zombie reaping
+
+    # Same hardening as the chart's securityContext.
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      # The only writable paths (emptyDir volumes in the chart). tmpfs counts
+      # against the container's memory limit, so keep these small.
+      - /tmp:size=64m,mode=1777
+      - /app/.next/cache:size=128m,mode=1777
+
+    # SESSION_SECRET has no *_FILE variant, so it is read from the Compose
+    # secret at startup. This keeps it out of `docker inspect` and out of
+    # this file.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        SESSION_SECRET="$$(cat /run/secrets/session_secret)" || exit 1
+        export SESSION_SECRET
+        exec node server.js
+
+    env_file:
+      - ./cinc-console.env
+    environment:
+      # Container-specific values: keep them here, not in cinc-console.env.
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      CINC_WEBUI_KEY_FILE: /run/secrets/webui_key
+      # Cinc server with a self-signed or private-CA certificate:
+      # CINC_CA_CERT_FILE: /etc/cinc-console/cinc-ca.pem
+      # AUTH_MODE=ldap with a service account:
+      # LDAP_BIND_PASSWORD_FILE: /run/secrets/ldap_bind_password
+      # LDAP_CA_CERT_FILE: /etc/cinc-console/ldap-ca.pem
+
+    secrets:
+      - source: webui_key
+      - source: session_secret
+      # - source: ldap_bind_password
+
+    # volumes:
+    #   - ./certs/cinc-ca.pem:/etc/cinc-console/cinc-ca.pem:ro
+    #   - ./certs/ldap-ca.pem:/etc/cinc-console/ldap-ca.pem:ro
+
+    # When the Cinc server's FQDN only resolves on your network:
+    # extra_hosts:
+    #   - "cinc.example.com:10.0.0.10"
+
+    ports:
+      # Loopback only by default: the session cookie is Secure in production,
+      # so browsers must reach the console over HTTPS (or via localhost).
+      - "${CINC_CONSOLE_BIND:-127.0.0.1:3000}:3000"
+
+    # Same endpoint and timing as the chart's livenessProbe (every 20s, three
+    # failures). Docker only marks a container unhealthy and never restarts
+    # it, so after three consecutive failures the check kills the server
+    # itself: the container exits and the restart policy brings it back.
+    # Failures only count once the server has answered at least once, so a
+    # slow first start is left to start_period.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          f=/tmp/healthz-failures
+          if wget -q -T 3 -O /dev/null http://127.0.0.1:3000/api/healthz; then
+            echo 0 > "$$f"; exit 0
+          fi
+          [ -f "$$f" ] || exit 1
+          n=$$(( $$(cat "$$f") + 1 )); echo "$$n" > "$$f"
+          if [ "$$n" -ge 3 ]; then kill -KILL $$(pidof node); fi
+          exit 1
+      interval: 20s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional TLS front end, the Compose counterpart of the chart's Ingress.
+  # Enable with: docker compose --profile proxy up -d
+  # Caddy passes the public Host through, which the login CSRF check compares
+  # with the browser's Origin.
+  caddy:
+    profiles: [proxy]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      cinc-console:
+        condition: service_healthy
+    environment:
+      CINC_CONSOLE_HOST: ${CINC_CONSOLE_HOST:-cinc-console.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddy runs as root, but with every capability dropped root can no
+      # longer read files it doesn't own: certs/ and its .pem files must be
+      # owned by root (see README.md).
+      - ./certs:/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+secrets:
+  webui_key:
+    file: ./secrets/webui_priv.pem
+  session_secret:
+    file: ./secrets/session_secret
+  # Read verbatim, trailing newline included: create it with
+  #   printf '%s' 'the-password' > secrets/ldap_bind_password
+  # ldap_bind_password:
+  #   file: ./secrets/ldap_bind_password
+
+volumes:
+  caddy_data:
+  caddy_config:
