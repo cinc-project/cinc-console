@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { NewObjectForm } from "./new-object-form";
 
@@ -34,4 +35,11 @@ test("accepts a valid name and enables Create", async () => {
   await userEvent.type(screen.getByLabelText("Name"), "web-server");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(createButton()).toBeEnabled();
+});
+
+test("has no axe violations, including the invalid-name state", async () => {
+  const { container } = setup();
+  expect(await axe(container)).toHaveNoViolations();
+  await userEvent.type(screen.getByLabelText("Name"), "web.server");
+  expect(await axe(container)).toHaveNoViolations();
 });

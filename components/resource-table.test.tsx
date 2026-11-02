@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { ResourceTable } from "./resource-table";
 
@@ -40,4 +41,11 @@ describe("ResourceTable", () => {
     expect(screen.getByText("1–5 of 5")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
   });
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(
+    <ResourceTable title="Nodes" names={names(120)} basePath="/b" />,
+  );
+  expect(await axe(container)).toHaveNoViolations();
 });

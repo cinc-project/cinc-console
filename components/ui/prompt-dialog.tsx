@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
+import { trapTab } from "./focus-trap";
 import { nameError, type NameKind } from "@/lib/cinc/names";
 
 /**
@@ -10,7 +11,8 @@ import { nameError, type NameKind } from "@/lib/cinc/names";
  * value before confirming — e.g. the name for a duplicated object. The input is
  * focused on open, validated against Chef's name rules when `nameKind` is set,
  * and the confirm button stays disabled until the value is non-empty and valid.
- * Escape and a backdrop click cancel; focus is restored to the opener on close.
+ * Escape and a backdrop click cancel; Tab is kept inside the dialog and focus
+ * is restored to the opener on close.
  */
 export function PromptDialog({
   open,
@@ -38,6 +40,7 @@ export function PromptDialog({
 }) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   const inputId = useId();
   const errorId = useId();
@@ -56,6 +59,7 @@ export function PromptDialog({
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onCancel();
+      else trapTab(e, dialogRef.current);
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -80,6 +84,7 @@ export function PromptDialog({
         onClick={onCancel}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { CookbooksTable } from "./cookbooks-table";
 
@@ -83,4 +84,9 @@ describe("CookbooksTable", () => {
     render(<CookbooksTable basePath="/b" cookbooks={[]} />);
     expect(screen.getByText(/no cookbooks in this organization/i)).toBeInTheDocument();
   });
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(<CookbooksTable basePath="/b" cookbooks={rows(3)} />);
+  expect(await axe(container)).toHaveNoViolations();
 });

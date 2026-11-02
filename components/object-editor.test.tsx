@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { ObjectEditor } from "./object-editor";
 
@@ -150,4 +151,24 @@ describe("ObjectEditor", () => {
     expect(nav.push).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+});
+
+it("has no axe violations in the details, JSON and duplicate-dialog states", async () => {
+  const user = userEvent.setup();
+  const { baseElement } = render(
+    <ObjectEditor
+      name="web"
+      initialJson={JSON.stringify({ run_list: [] }, null, 2)}
+      details={<p>Curated view</p>}
+      backHref="/back"
+      onSave={vi.fn()}
+      onDuplicate={vi.fn()}
+      nameKind="role"
+    />,
+  );
+  expect(await axe(baseElement)).toHaveNoViolations();
+  await user.click(screen.getByRole("button", { name: "Edit JSON" }));
+  expect(await axe(baseElement)).toHaveNoViolations();
+  await user.click(screen.getByRole("button", { name: "Duplicate" }));
+  expect(await axe(baseElement)).toHaveNoViolations();
 });

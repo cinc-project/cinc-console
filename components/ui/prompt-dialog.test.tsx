@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { PromptDialog } from "./prompt-dialog";
 
@@ -74,8 +75,46 @@ describe("PromptDialog", () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it("keeps Tab inside the dialog", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.type(screen.getByLabelText("New name"), "copy-of-web");
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Duplicate" })).toHaveFocus();
+    await user.tab(); // last -> wraps to the input
+    expect(screen.getByLabelText("New name")).toHaveFocus();
+    await user.tab({ shift: true }); // first -> wraps to the last
+    expect(screen.getByRole("button", { name: "Duplicate" })).toHaveFocus();
+  });
+
   it("shows a server error via an alert", () => {
     setup({ error: "name already exists" });
     expect(screen.getByRole("alert")).toHaveTextContent("name already exists");
   });
+});
+
+it("has no axe violations, including the error state", async () => {
+  const { baseElement, rerender } = render(
+    <PromptDialog
+      open
+      title="Duplicate role"
+      label="New name"
+      onSubmit={vi.fn()}
+      onCancel={vi.fn()}
+    />,
+  );
+  expect(await axe(baseElement)).toHaveNoViolations();
+  rerender(
+    <PromptDialog
+      open
+      title="Duplicate role"
+      label="New name"
+      error="name already exists"
+      onSubmit={vi.fn()}
+      onCancel={vi.fn()}
+    />,
+  );
+  expect(await axe(baseElement)).toHaveNoViolations();
 });

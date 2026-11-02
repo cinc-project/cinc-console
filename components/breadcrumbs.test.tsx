@@ -1,5 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import { Breadcrumbs } from "./breadcrumbs";
 
 const setPath = (p: string) =>
@@ -40,4 +41,10 @@ test("does not link the structural 'groups' segment under members", () => {
   render(<Breadcrumbs />);
   expect(screen.queryByRole("link", { name: "groups" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Members" })).toBeInTheDocument();
+});
+
+test("has no axe violations", async () => {
+  setPath("/orgs/acme/data_bags/secrets/api_key");
+  const { container } = render(<Breadcrumbs />);
+  expect(await axe(container)).toHaveNoViolations();
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { NodeDetails } from "./node-details";
 import { RoleDetails } from "./role-details";
@@ -128,5 +129,40 @@ describe("AttributeTree", () => {
     expect(screen.queryByText("value")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /inner/i }));
     expect(screen.getByText("value")).toBeInTheDocument();
+  });
+});
+
+describe("details views", () => {
+  it.each([
+    ["NodeDetails", () => (
+      <NodeDetails
+        data={{
+          chef_environment: "production",
+          run_list: ["recipe[a]"],
+          normal: { tags: ["frontend"] },
+          automatic: { platform: "ubuntu", platform_version: "22.04" },
+        }}
+        clientStatus="eol"
+      />
+    )],
+    ["RoleDetails", () => (
+      <RoleDetails
+        data={{ run_list: ["recipe[base]"], env_run_lists: { production: ["recipe[prod]"] } }}
+      />
+    )],
+    ["EnvironmentDetails", () => (
+      <EnvironmentDetails data={{ cookbook_versions: { apache2: ">= 1.0.0" } }} />
+    )],
+    ["GroupDetails", () => <GroupDetails data={{ users: ["anna"], clients: [] }} />],
+    ["ClientDetails", () => (
+      <ClientDetails data={{ name: "node1", validator: true, admin: false }} />
+    )],
+    ["DataBagItemDetails", () => (
+      <DataBagItemDetails data={{ id: "secret", password: "p@ss" }} />
+    )],
+    ["AttributeTree", () => <AttributeTree data={{ outer: { inner: { leaf: "v" } } }} />],
+  ])("%s has no axe violations", async (_name, ui) => {
+    const { container } = render(ui());
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
