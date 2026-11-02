@@ -187,23 +187,34 @@ method); a bind that succeeds against an unprovisioned username fails the
 login with a distinct `auth.ldap_ok_no_chef_user` log line, not "bad
 password".
 
-## Local testing against cinc-zero
+## Local testing against cinc-server-ng
 
-`cinc-zero` (../cinc-zero) speaks the Cinc API and supports webui impersonation
-as of **v0.7.0** — earlier versions verify each request against the
-`X-Ops-UserId` user's own key and return 401 for the console's signed-as-webui
-requests. **v0.8.0+** seeds a ready login (`anna` / `anna123`) in `dev/test-repo`.
+[`cinc-server-ng`](https://github.com/cinc-project/cinc-server-ng) (formerly
+`cinc-zero`; checked out at `../cinc-server-ng`) speaks the Cinc API, supports
+webui impersonation, and **enforces ACLs by default**. Get the binary from a
+release (`scripts/e2e.sh` pins one) or `go build ./cmd/cinc-server-ng` in its
+repo. Run it from that repo so `--state` finds its seeded fixture:
 
 ```bash
-cinc-zero --state dev/test-repo --key-out /tmp/webui.pem   # admin key doubles as the webui key
+cinc-server-ng --state dev/test-repo --key-out /tmp/webui.pem   # admin key doubles as the webui key
 ```
 
-Point the console at it: `CINC_SERVER_URL=http://127.0.0.1:8890`,
-`CINC_WEBUI_KEY=$(cat /tmp/webui.pem)`, then log in as **anna / anna123**.
+Don't use its `make run-dev`: that passes `--no-auth`, which skips signature
+verification and ACLs, so it proves nothing about the console's signing.
 
-Login requires a user **with a password** (cinc-zero stores passwords out-of-band
-for `authenticate_user`). To mint another, run `node scripts/seed-user.mjs
-<name> <password>` with the same `CINC_SERVER_URL`/`CINC_WEBUI_KEY` env, or
-`POST /users {"name":"…","password":"…"}` signed via the webui key.
+Point the console at it: `CINC_SERVER_URL=http://127.0.0.1:8889` (the default
+`--addr`), `CINC_WEBUI_KEY=$(cat /tmp/webui.pem)`, then log in as
+**tim / tim123** (acme org admin). `jack` is a plain `acme` member with no web
+password; give him one to see the console's 403 handling.
+
+Login requires a user **with a password** (cinc-server-ng stores passwords
+out-of-band for `authenticate_user`). To mint another, or to set one, run `node
+scripts/seed-user.mjs <name> <password>` with the same
+`CINC_SERVER_URL`/`CINC_WEBUI_KEY` env, or `POST /users
+{"name":"…","password":"…"}` signed via the webui key.
+
+`make e2e` doesn't use `dev/test-repo`. It starts its own server from
+`e2e/fixtures/state` (anna/anna123 admin, bob/bob123 member), so changes to
+cinc-server-ng's dev fixture don't break it.
 
 Design spec and implementation plan live in `docs/superpowers/`.

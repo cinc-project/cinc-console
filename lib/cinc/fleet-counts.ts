@@ -45,7 +45,7 @@ export async function fetchFleetCounts(
       // Strict lower bound ({) so "exactly at the cutoff" counts as missing,
       // matching isMissing's `> threshold`. Keep both brackets matched ({…})
       // — real Cinc/Solr tolerates a mixed `{… ]`, but a leaner server (e.g.
-      // cinc-zero) rejects it as an "unterminated range".
+      // cinc-server-ng) rejects it as an "unterminated range".
       searchTotal(user, org, "node", `ohai_time:{${cutoff} TO *}`),
       searchTotal(user, org, "node", `run_list:[* TO *] OR policy_name:[* TO *]`),
     ]);
