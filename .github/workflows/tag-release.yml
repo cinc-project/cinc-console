@@ -46,6 +46,15 @@ jobs:
           # The gate: refuse to tag a tree whose version files disagree with the
           # branch, however the PR was edited before merging.
           node scripts/set-version.mjs --check "$version"
+          # Allowlist again at the write site, so this line stays safe even if
+          # the check above moves or loosens: a newline in the value would
+          # inject extra step outputs.
+          case "$version" in
+            "" | *[!0-9A-Za-z.-]*)
+              echo "::error::release version has characters outside [0-9A-Za-z.-]" >&2
+              exit 1
+              ;;
+          esac
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Tag the merge commit and publish the Release
