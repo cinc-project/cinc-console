@@ -180,6 +180,30 @@ test("LDAP_BIND_DN without a password (or vice versa) is rejected", () => {
       LDAP_BIND_DN: "cn=svc,dc=example,dc=com",
     }),
   ).toThrow(/LDAP_BIND_DN\/LDAP_BIND_PASSWORD/);
+  expect(() =>
+    loadConfig({
+      ...base,
+      AUTH_MODE: "ldap",
+      LDAP_URL: "ldaps://dc1.example.com:636",
+      LDAP_BASE_DN: "dc=example,dc=com",
+      LDAP_BIND_PASSWORD: "s3cret",
+    }),
+  ).toThrow(/LDAP_BIND_DN\/LDAP_BIND_PASSWORD/);
+});
+
+test("LDAP_BIND_DN with an inline LDAP_BIND_PASSWORD is accepted", () => {
+  const c = loadConfig({
+    ...base,
+    AUTH_MODE: "ldap",
+    LDAP_URL: "ldaps://dc1.example.com:636",
+    LDAP_BASE_DN: "dc=example,dc=com",
+    LDAP_BIND_DN: "cn=svc,dc=example,dc=com",
+    LDAP_BIND_PASSWORD: "s3cret",
+  });
+  expect(c.ldap).toMatchObject({
+    bindDn: "cn=svc,dc=example,dc=com",
+    bindPassword: "s3cret",
+  });
 });
 
 test("reads LDAP_BIND_PASSWORD from LDAP_BIND_PASSWORD_FILE", () => {
