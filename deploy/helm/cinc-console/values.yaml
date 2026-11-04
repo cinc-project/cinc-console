@@ -11,7 +11,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# -- Connection to the Cinc/Chef Infra Server.
+# -- Connection to the Cinc/Chef Infra Server. The server's root URL, without
+# a /organizations/<org> path (unlike a client's chef_server_url).
 cincServerUrl: "" # e.g. https://chef.example.com  (REQUIRED)
 # Skip TLS verification of the cinc server (dev only).
 sslNoVerify: false

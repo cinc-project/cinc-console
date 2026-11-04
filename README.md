@@ -44,7 +44,7 @@ private key is shown once at creation and is never retrievable again).
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `CINC_SERVER_URL` | yes | Base URL of the Cinc/Chef server, e.g. `https://chef.example.com` |
+| `CINC_SERVER_URL` | yes | Root URL of the Cinc/Chef server, e.g. `https://chef.example.com`. No `/organizations/<org>` path: unlike a client's `chef_server_url`, the console covers every org and builds those paths itself. |
 | `CINC_WEBUI_KEY` | conditional | Inline contents of `webui_priv.pem` (PEM). Required when `CINC_WEBUI_KEY_FILE` is not set. |
 | `CINC_WEBUI_KEY_FILE` | conditional | Path to `webui_priv.pem`. Required when `CINC_WEBUI_KEY` is not set. |
 | `SESSION_SECRET` | conditional | 32+ char secret used to encrypt the session cookie. Required when `SESSION_SECRET_FILE` is not set. |
