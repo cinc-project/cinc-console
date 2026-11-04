@@ -5,10 +5,20 @@ import { SiteFooter } from "./site-footer";
 describe("SiteFooter", () => {
   it("shows the copyright and license on every page", () => {
     render(<SiteFooter />);
-    expect(screen.getByRole("contentinfo")).toHaveTextContent("© 2026 Tim Smith");
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(
+      "© 2026 Tim Smith & Cinc Project",
+    );
     expect(
-      screen.getByRole("link", { name: "Business Source License 1.1" }),
+      screen.getByRole("link", { name: "Apache License 2.0" }),
     ).toBeInTheDocument();
+  });
+
+  it("links to cinc.sh", () => {
+    render(<SiteFooter />);
+    expect(screen.getByRole("link", { name: "cinc.sh" })).toHaveAttribute(
+      "href",
+      "https://cinc.sh/",
+    );
   });
 
   it("omits the version when none is passed (the signed-out login page)", () => {

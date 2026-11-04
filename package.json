@@ -2,6 +2,7 @@
   "name": "cinc-console",
   "version": "0.8.0",
   "private": true,
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.34.9",
   "scripts": {
     "dev": "next dev",
