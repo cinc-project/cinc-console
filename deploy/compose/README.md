@@ -32,6 +32,11 @@ mkdir -p secrets
 
 # webui key from the Cinc server
 scp root@cinc-server:/etc/opscode/webui_priv.pem secrets/webui_priv.pem
+# cinc-server-ng has no webui_priv.pem: generate a dedicated pair instead and
+# start the server with --webui-key webui_pub.pem (see "Using cinc-server-ng"
+# in the top-level README)
+#   openssl genrsa -traditional -out secrets/webui_priv.pem 2048
+#   openssl rsa -in secrets/webui_priv.pem -pubout -out webui_pub.pem
 
 # Session cookie encryption secret: 32+ characters. Keep it stable —
 # regenerating it signs everyone out.

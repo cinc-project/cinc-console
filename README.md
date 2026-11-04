@@ -104,6 +104,43 @@ docker compose up -d --build
 See [deploy/compose/README.md](deploy/compose/README.md) for secrets, TLS,
 LDAP, and the differences from the chart.
 
+## Using cinc-server-ng
+
+[cinc-server-ng](https://github.com/cinc-project/cinc-server-ng) has no
+`webui_priv.pem` to copy. By default it trusts its bootstrap admin (`pivotal`)
+key for webui impersonation, so the console would have to hold the admin key.
+Give it a dedicated webui keypair instead. The server only needs the public
+half, and the two keys can then be rotated separately:
+
+```bash
+openssl genrsa -traditional -out webui_priv.pem 2048
+openssl rsa -in webui_priv.pem -pubout -out webui_pub.pem
+
+# Server: trust the public key for X-Ops-Request-Source: web
+cinc-server-ng --storage sqlite --db /data/cinc.db --webui-key webui_pub.pem
+```
+
+Give the console `webui_priv.pem` (`CINC_WEBUI_KEY_FILE`, the Helm chart's
+`webuiKey`, or `secrets/webui_priv.pem` for Compose) and keep `webui_pub.pem`
+with the server.
+
+A fresh cinc-server-ng has only `pivotal`, which has a key but no password, so
+nobody can log in to the console yet. Create a user with a password and make it
+an org admin, signed as `pivotal` with the [`cinc`](https://github.com/cinc-project/cinc-cli)
+CLI:
+
+```bash
+cinc user create alice --email alice@example.com --password '...'
+cinc org member add alice
+cinc group member add admins alice
+```
+
+Keep `CINC_AUTH_ACTOR=pivotal` (the Compose and Helm default) so the console's
+password checks are signed by a superuser.
+
+For a local dev loop against cinc-server-ng, see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md#testing-against-cinc-server-ng).
+
 ## Building images
 
 Official images are published to GitHub Container Registry as
