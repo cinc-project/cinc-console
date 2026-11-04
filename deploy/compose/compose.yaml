@@ -9,21 +9,20 @@
 # See README.md in this directory for the setup steps. In short:
 #   cp cinc-console.env.example cinc-console.env   # then edit it
 #   # put webui_priv.pem and a session secret in ./secrets/ (see README.md)
-#   docker compose up -d --build                    # console on 127.0.0.1:3000
-#   docker compose --profile proxy up -d --build    # plus Caddy for TLS
+#   docker compose up -d                            # console on 127.0.0.1:3000
+#   docker compose --profile proxy up -d            # plus Caddy for TLS
+#
+# That runs the published release. To build this checkout instead, add
+# compose.build.yaml: docker compose -f compose.yaml -f compose.build.yaml up -d --build
 
 name: cinc-console
 
 services:
   cinc-console:
-    # Built from this checkout by default. To run a published release instead,
-    # delete the "build" key and point "image" at it, for example
-    #   image: ghcr.io/cinc-project/cinc-console:<version>
-    # The localhost/ prefix keeps Compose from looking for a same-named image
-    # on Docker Hub.
-    image: localhost/cinc-console:local
-    build:
-      context: ../..
+    # The published release matching this checkout (bumped by
+    # scripts/set-version.mjs at release time). Set CINC_CONSOLE_IMAGE in .env
+    # to pin another tag or digest; compose.build.yaml builds this checkout.
+    image: ${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.7.1}
 
     restart: unless-stopped
     init: true # tini as PID 1, for clean signal handling and zombie reaping

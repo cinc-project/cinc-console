@@ -36,6 +36,21 @@ export const TARGETS = [
         .replace(/^version: .*$/m, `version: ${version}`)
         .replace(/^appVersion: .*$/m, `appVersion: "${version}"`),
   },
+  {
+    file: "deploy/compose/compose.yaml",
+    // The default image of the Compose example, so a checkout of a release tag
+    // runs that release. CINC_CONSOLE_IMAGE still overrides it, and anchoring
+    // on the full line keeps other services' images (caddy) out of reach.
+    read: (text) =>
+      [...text.matchAll(/^ {4}image: \$\{CINC_CONSOLE_IMAGE:-ghcr\.io\/cinc-project\/cinc-console:([^}\n]*)\}$/gm)].map(
+        (m) => m[1],
+      ),
+    set: (text, version) =>
+      text.replace(
+        /^( {4}image: \$\{CINC_CONSOLE_IMAGE:-ghcr\.io\/cinc-project\/cinc-console:)[^}\n]*\}$/m,
+        `$1${version}}`,
+      ),
+  },
 ];
 
 /** Versions a target currently declares, plus whether they all match `version`. */

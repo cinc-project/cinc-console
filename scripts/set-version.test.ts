@@ -29,6 +29,15 @@ keywords:
   - cinc
 `;
 
+const COMPOSE_YAML = `services:
+  cinc-console:
+    # Published release by default; compose.build.yaml builds this checkout.
+    image: \${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.1.1}
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+`;
+
 describe("SEMVER", () => {
   it("accepts bare semver, with or without a prerelease", () => {
     expect(SEMVER.test("0.5.0")).toBe(true);
@@ -94,11 +103,39 @@ describe("Chart.yaml target", () => {
   });
 });
 
+describe("compose.yaml target", () => {
+  const t = target("compose.yaml");
+
+  it("rewrites the default image tag, keeping the override variable", () => {
+    const after = t.set(COMPOSE_YAML, "0.5.0");
+    expect(after).toContain(
+      "    image: ${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.5.0}\n",
+    );
+    expect(inspect(t, after, "0.5.0")).toEqual({ found: ["0.5.0"], ok: true });
+  });
+
+  it("changes exactly one line and leaves other images alone", () => {
+    const after = t.set(COMPOSE_YAML, "0.5.0");
+    const changed = after
+      .split("\n")
+      .filter((line: string, i: number) => line !== COMPOSE_YAML.split("\n")[i]);
+    expect(changed).toEqual([
+      "    image: ${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.5.0}",
+    ]);
+    expect(after).toContain("    image: caddy:2-alpine\n");
+  });
+
+  it("reports the version it found when checking", () => {
+    expect(inspect(t, COMPOSE_YAML, "0.5.0")).toEqual({ found: ["0.1.1"], ok: false });
+  });
+});
+
 describe("every target", () => {
   it("is idempotent", () => {
     for (const [t, text] of [
       [target("package.json"), PACKAGE_JSON],
       [target("Chart.yaml"), CHART_YAML],
+      [target("compose.yaml"), COMPOSE_YAML],
     ] as const) {
       const once = t.set(text, "0.5.0");
       expect(t.set(once, "0.5.0")).toBe(once);
