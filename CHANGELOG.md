@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.8.0 - 2026-11-04
+
+### Merged pull requests
+
+- Add illustrated empty states to every list page (#144)
+- Redesign the fleet dashboard, add a signed-in footer, and support phones (#143)
+- Read the Compose session secret through SESSION_SECRET_FILE (#137)
+- Run the published image by default in the Compose example (#138)
+- Document using a dedicated webui keypair with cinc-server-ng (#139)
+- Document that CINC_SERVER_URL is the server root, without /organizations (#140)
+- Add a Traefik example to the Compose reverse proxy docs (#141)
+- Log the signing actor separately from the user on failed requests (#142)
+
 ## 0.7.1 - 2026-11-04
 
 ### Merged pull requests
