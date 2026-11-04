@@ -18,6 +18,9 @@ import { compareVersions, type NodeSummary } from "@/lib/cinc/fleet";
 import { relativeAgo } from "@/lib/time";
 import { ClientVersion } from "@/components/client-chip";
 import { SortSelect, type SortOption } from "@/components/ui/sort-select";
+import { EmptyState } from "@/components/empty-state";
+import { CommandSnippet } from "@/components/command-snippet";
+import { NodesIllustration } from "@/components/illustrations";
 
 const SORT_KEYS = ["name", "lastSeen", "client"] as const;
 const DEFAULT_SORT: SortState = { key: "name", dir: "asc" };
@@ -102,6 +105,49 @@ export function NodesTable({
     setPage(0);
   }
 
+  if (nodes.length === 0) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Nodes" />
+        <EmptyState
+          illustration={<NodesIllustration />}
+          title="No nodes yet"
+          actions={
+            <>
+              <CommandSnippet
+                commands={{
+                  cinc: ["cinc node bootstrap HOST --ssh-user USER --node-name NAME"],
+                  knife: ["knife bootstrap HOST -U USER --sudo -N NAME"],
+                }}
+                notes={{
+                  cinc: (
+                    <>
+                      First time on this workstation? Run{" "}
+                      <code className="font-mono">cinc config create</code> to
+                      save your server URL and key.
+                    </>
+                  ),
+                  knife: (
+                    <>
+                      First time on this workstation? Run{" "}
+                      <code className="font-mono">knife configure</code>.
+                    </>
+                  ),
+                }}
+              />
+              <Link href={createHref} className="text-sm text-link hover:underline">
+                Or create a node record by hand
+              </Link>
+            </>
+          }
+        >
+          A node is any machine the Cinc client manages. Bootstrap one over SSH
+          and it registers itself here, with its health and client version.
+        </EmptyState>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -130,15 +176,7 @@ export function NodesTable({
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
-        {nodes.length === 0 ? (
-          <div className="p-4 text-sm text-muted">
-            <p>No nodes in this organization yet.</p>
-            <p className="mt-1">
-              Nodes register when a Cinc client first converges against this
-              organization.
-            </p>
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="p-4 text-sm text-muted">
             No nodes matching &ldquo;{q}&rdquo;.
           </p>

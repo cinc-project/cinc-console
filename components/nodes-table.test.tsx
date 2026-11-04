@@ -91,13 +91,18 @@ describe("NodesTable", () => {
     expect(screen.getByText("51–100 of 120")).toBeInTheDocument();
   });
 
-  it("offers a New link and an empty state", () => {
+  it("shows a bootstrap call to action when the org has no nodes", () => {
     render(<NodesTable {...base} nodes={[]} />);
-    expect(screen.getByText(/no nodes in this organization/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /new/i })).toHaveAttribute(
-      "href",
-      "/orgs/acme/nodes/new",
-    );
+    expect(screen.getByRole("heading", { name: "No nodes yet" })).toBeInTheDocument();
+    expect(screen.getByText(/cinc node bootstrap/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Or create a node record by hand" }),
+    ).toHaveAttribute("href", "/orgs/acme/nodes/new");
+  });
+
+  it("has no axe violations when empty", async () => {
+    const { container } = render(<NodesTable {...base} nodes={[]} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
 

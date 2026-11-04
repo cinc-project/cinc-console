@@ -48,32 +48,39 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-html,
-body {
-  background: var(--bg);
-  color: var(--text);
-}
+/* Element defaults live in the base layer so Tailwind utilities override them.
+   Unlayered CSS beats every layered rule regardless of specificity, so an
+   unlayered `a { color }` silently won over `text-*` on every link (button-
+   styled links, muted nav items). */
+@layer base {
+  html,
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
 
-body {
-  font-family: var(--font-sans);
-}
+  body {
+    font-family: var(--font-sans);
+  }
 
-a {
-  color: var(--link);
-}
+  a {
+    color: var(--link);
+  }
 
-/* Visible keyboard-focus indicator for interactive elements that don't define
-   their own ring (plain links, nav, breadcrumbs). Components that set
-   `focus-visible:outline-none` + a ring override this by specificity. */
-:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
+  /* Visible keyboard-focus indicator for interactive elements that don't define
+     their own ring (plain links, nav, breadcrumbs). Components that set
+     `focus-visible:outline-none` + a ring override it, because utilities beat
+     the base layer. */
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 
-::selection {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
 }
 
 /* Mobile nav drawer entrance. Only applied under `motion-safe:`, so users who

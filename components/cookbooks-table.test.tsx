@@ -82,7 +82,15 @@ describe("CookbooksTable", () => {
 
   it("invites the user to upload when the org has no cookbooks", () => {
     render(<CookbooksTable basePath="/b" cookbooks={[]} />);
-    expect(screen.getByText(/no cookbooks in this organization/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No cookbooks yet" })).toBeInTheDocument();
+    expect(screen.getByText("cinc cookbook upload")).toBeInTheDocument();
+    // Nothing to filter in an empty org.
+    expect(screen.queryByPlaceholderText(/filter/i)).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations when empty", async () => {
+    const { container } = render(<CookbooksTable basePath="/b" cookbooks={[]} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
 
