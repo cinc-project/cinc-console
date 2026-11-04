@@ -90,6 +90,31 @@ proxy_set_header X-Forwarded-Host $host;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
 
+Traefik needs no header settings: it passes `Host` through and sets
+`X-Forwarded-Host` and `X-Forwarded-Proto` by default. A file-provider route
+(Traefik v3):
+
+```yaml
+http:
+  routers:
+    cinc-console:
+      rule: Host(`cinc-console.example.com`)
+      entryPoints: [websecure]
+      service: cinc-console
+      tls: {}
+  services:
+    cinc-console:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.0.20:3000"
+```
+
+The console is published on `127.0.0.1:3000` by default, which a Traefik
+running in another container can't reach. Set `CINC_CONSOLE_BIND` in `.env`
+to an address Traefik can reach (for example `10.0.0.20:3000`, the host's
+LAN address above), or attach both containers to a shared Docker network and
+point the route at `http://cinc-console:3000`.
+
 ## Private CA and LDAP
 
 - **Cinc server with a self-signed or private-CA certificate:** put the CA in
