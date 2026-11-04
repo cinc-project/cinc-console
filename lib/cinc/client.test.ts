@@ -57,6 +57,54 @@ test("throws CincError with status on non-2xx", async () => {
   ).rejects.toMatchObject({ status: 403, forbidden: true });
 });
 
+function failedRequestLog(spy: { mock: { calls: unknown[][] } }) {
+  const lines = spy.mock.calls.map((c) => JSON.parse(String(c[0])));
+  return lines.find((l) => l.event === "cinc.request_failed");
+}
+
+test("a failed request logs the signer as actor and as user", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("denied", { status: 403 })),
+  );
+  const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+  await expect(
+    cincRequest({ user: "alice", method: "GET", path: cincPath`/nodes`, org: "acme" }),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(failedRequestLog(spy)).toMatchObject({
+    actor: "alice",
+    user: "alice",
+    path: "/organizations/acme/nodes",
+    status: 403,
+  });
+  spy.mockRestore();
+});
+
+test("a failed request made on behalf of someone logs them as user, the signer as actor", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("nope", { status: 401 })),
+  );
+  const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+  await expect(
+    cincRequest({
+      user: "pivotal",
+      onBehalfOf: "alice",
+      method: "POST",
+      path: cincPath`/authenticate_user`,
+      body: { username: "alice", password: "s3cret" },
+    }),
+  ).rejects.toMatchObject({ status: 401 });
+  expect(failedRequestLog(spy)).toMatchObject({
+    actor: "pivotal",
+    user: "alice",
+    path: "/authenticate_user",
+    status: 401,
+  });
+  expect(spy.mock.calls.flat().join("\n")).not.toContain("s3cret");
+  spy.mockRestore();
+});
+
 test("refuses to sign a path a name has broken out of", async () => {
   const fetchMock = vi.fn(
     async () => new Response(JSON.stringify({}), { status: 200 }),

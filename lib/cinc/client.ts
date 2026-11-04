@@ -45,7 +45,14 @@ export function nowMs(): number {
 }
 
 export type CincRequestOptions = {
+  /** The signing actor (X-Ops-UserId): normally the logged-in user. */
   user: string;
+  /**
+   * The person the request is for, when that isn't the signer. Logs only,
+   * never signed: POST /authenticate_user is signed as CINC_AUTH_ACTOR but is
+   * on behalf of the user logging in. Defaults to `user`.
+   */
+  onBehalfOf?: string;
   method: string;
   /**
    * Built with the `cincPath` tagged template, which vets each interpolated name
@@ -83,7 +90,8 @@ export async function cincRequest<T>(opts: CincRequestOptions): Promise<T> {
   } catch (e) {
     if (isUnsafePathError(e)) {
       log.warn("cinc.unsafe_path", {
-        user: opts.user,
+        actor: opts.user,
+        user: opts.onBehalfOf ?? opts.user,
         org: opts.org,
         method: opts.method,
         path: fullPath,
@@ -128,8 +136,11 @@ export async function cincRequest<T>(opts: CincRequestOptions): Promise<T> {
   if (!res.ok) {
     // Audit trail of denied/failed server calls. Identifiers only — never the
     // body (data bag items hold secrets) or headers (they carry the signature).
+    // `actor` signed the request; `user` is who it was for. They differ only
+    // when signing as CINC_AUTH_ACTOR (login).
     log[res.status >= 500 ? "error" : "warn"]("cinc.request_failed", {
-      user: opts.user,
+      actor: opts.user,
+      user: opts.onBehalfOf ?? opts.user,
       org: opts.org,
       method: opts.method,
       path: fullPath,

@@ -10,7 +10,7 @@ import "server-only";
  *
  * NEVER pass secrets here: no passwords, no request/response bodies (data bag
  * items hold secrets), no headers (they carry the webui signature). Stick to
- * identifiers — user, org, method, path, status.
+ * identifiers — actor, user, org, method, path, status.
  */
 type Level = "info" | "warn" | "error";
 type Fields = Record<string, string | number | boolean | undefined>;
