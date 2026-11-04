@@ -1,0 +1,9 @@
+# Build cinc-console from this checkout instead of running the published image:
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --build
+# The localhost/ prefix keeps Compose from looking for a same-named image on
+# Docker Hub.
+services:
+  cinc-console:
+    image: localhost/cinc-console:local
+    build:
+      context: ../..

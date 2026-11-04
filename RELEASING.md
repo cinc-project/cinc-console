@@ -36,6 +36,7 @@ That opens a **Release 0.5.0** PR on branch `release/0.5.0` containing:
 
 - `package.json` → `version: 0.5.0`
 - `deploy/helm/cinc-console/Chart.yaml` → `version` and `appVersion` → `0.5.0`
+- `deploy/compose/compose.yaml` → default image `ghcr.io/cinc-project/cinc-console:0.5.0`
 - `CHANGELOG.md` → a `## 0.5.0 - <date>` section
 
 Review it like any other PR. CI runs against it, so you get the full `make check`
@@ -64,9 +65,9 @@ Two independent guards back that up, both running `set-version.mjs --check`:
 
 Run the same check locally: `make version-check VERSION=0.5.0`.
 
-## The version lives in three places
+## The version lives in four places
 
-`scripts/set-version.mjs` is the only thing that knows where. Adding a fourth
+`scripts/set-version.mjs` is the only thing that knows where. Adding a fifth
 place means adding a target there — and a test in `scripts/set-version.test.ts` —
 so `--check` covers it everywhere at once.
 

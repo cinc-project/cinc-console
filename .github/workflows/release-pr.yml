@@ -77,6 +77,7 @@ jobs:
           Prepares the $VERSION release.
 
           - package.json and the Helm chart (version + appVersion) set to $VERSION
+          - the Compose example's default image set to $VERSION
           - CHANGELOG.md gains a $VERSION section generated from the PR titles
             merged since the last tag
 

@@ -98,11 +98,11 @@ same hardening, secrets mounted as files, and an optional Caddy service for TLS.
 cd deploy/compose
 cp cinc-console.env.example cinc-console.env   # set CINC_SERVER_URL
 # add secrets/webui_priv.pem and secrets/session_secret, see the README there
-docker compose up -d --build
+docker compose up -d                           # runs the published image
 ```
 
 See [deploy/compose/README.md](deploy/compose/README.md) for secrets, TLS,
-LDAP, and the differences from the chart.
+LDAP, building from the checkout, and the differences from the chart.
 
 ## Building images
 

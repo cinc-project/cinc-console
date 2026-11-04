@@ -52,13 +52,18 @@ only.
 ## 3. Start
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 docker compose ps        # wait for "healthy"
 ```
 
-This builds the image from this checkout. To run a published release instead,
-edit `compose.yaml`: delete the `build` key and set
-`image: ghcr.io/cinc-project/cinc-console:<version>`.
+This runs the published image for this checkout's release,
+`ghcr.io/cinc-project/cinc-console:<version>`. To pin another tag or a digest,
+set `CINC_CONSOLE_IMAGE` in `.env`. To build the image from this checkout
+instead (local changes, a private npm registry), add `compose.build.yaml`:
+
+```bash
+docker compose -f compose.yaml -f compose.build.yaml up -d --build
+```
 
 ## TLS
 
@@ -77,7 +82,7 @@ sudo chown -R root:root certs
 sudo chmod 755 certs && sudo chmod 644 certs/*.pem
 sudo chmod 600 certs/privkey.pem
 
-docker compose --profile proxy up -d --build
+docker compose --profile proxy up -d
 ```
 
 **With your own reverse proxy:** pass the public hostname through in `Host`
