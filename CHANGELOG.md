@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.7.1 - 2026-11-04
+
+### Merged pull requests
+
+- Add license footer to the login page (#135)
+
 ## 0.7.0 - 2026-11-02
 
 ### Added
