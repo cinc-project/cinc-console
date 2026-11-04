@@ -23,14 +23,22 @@ export function ResourceTable({
   names,
   basePath,
   createHref,
-  emptyHint,
+  empty,
+  builtIn = [],
 }: {
   title: string;
   names: string[];
   basePath: string;
   createHref?: string;
-  /** Extra guidance shown when the org has none of this object yet. */
-  emptyHint?: ReactNode;
+  /** The EmptyState shown when the org has none of this object yet. */
+  empty?: ReactNode;
+  /**
+   * Names the server creates on its own (`_default`, the org validator). A
+   * list holding only these still counts as empty, so a new org gets the
+   * empty state rather than a one-row table; the page's `empty` should link
+   * to them so they stay reachable.
+   */
+  builtIn?: string[];
 }) {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
@@ -51,6 +59,17 @@ export function ResourceTable({
   function onFilter(value: string) {
     setQ(value);
     setPage(0);
+  }
+
+  // The empty state carries its own call to action, so the header's "New"
+  // button and the filter box (nothing to filter) are left out.
+  if (empty && names.every((n) => builtIn.includes(n))) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title={title} />
+        {empty}
+      </div>
+    );
   }
 
   return (
@@ -77,7 +96,6 @@ export function ResourceTable({
         {names.length === 0 ? (
           <div className="p-4 text-sm text-muted">
             <p>No {title.toLowerCase()} in this organization yet.</p>
-            {emptyHint && <p className="mt-1">{emptyHint}</p>}
             {createHref && (
               <Link
                 href={createHref}

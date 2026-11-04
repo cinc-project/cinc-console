@@ -49,3 +49,35 @@ it("has no axe violations", async () => {
   );
   expect(await axe(container)).toHaveNoViolations();
 });
+
+describe("empty state", () => {
+  const empty = <section aria-label="empty">Nothing here yet</section>;
+
+  it("replaces the table and filter when there are no objects", () => {
+    render(<ResourceTable title="Roles" names={[]} basePath="/b" createHref="/b/new" empty={empty} />);
+    expect(screen.getByRole("region", { name: "empty" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/filter/i)).not.toBeInTheDocument();
+  });
+
+  it("treats a list of only built-in objects as empty", () => {
+    render(
+      <ResourceTable title="Environments" names={["_default"]} basePath="/b" builtIn={["_default"]} empty={empty} />,
+    );
+    expect(screen.getByRole("region", { name: "empty" })).toBeInTheDocument();
+  });
+
+  it("shows the list as soon as there is one object of the user's own", () => {
+    render(
+      <ResourceTable
+        title="Environments"
+        names={["_default", "prod"]}
+        basePath="/b"
+        builtIn={["_default"]}
+        empty={empty}
+      />,
+    );
+    expect(screen.queryByRole("region", { name: "empty" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /prod/ })).toBeInTheDocument();
+  });
+});

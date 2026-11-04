@@ -4,6 +4,9 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { CommandSnippet } from "@/components/command-snippet";
+import { CookbooksIllustration } from "@/components/illustrations";
 import { PageHeader } from "./ui/page-header";
 import { SortableTh } from "./ui/sortable";
 import { useSort } from "./ui/use-sort";
@@ -72,6 +75,29 @@ export function CookbooksTable({
     setPage(0);
   }
 
+  if (cookbooks.length === 0) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Cookbooks" />
+        <EmptyState
+          illustration={<CookbooksIllustration />}
+          title="No cookbooks yet"
+          actions={
+            <CommandSnippet
+              commands={{
+                cinc: ["cinc cookbook upload COOKBOOK"],
+                knife: ["knife cookbook upload COOKBOOK"],
+              }}
+            />
+          }
+        >
+          Cookbooks hold the recipes your nodes run. Upload them from your
+          workstation; this page lists every version and lets you delete them.
+        </EmptyState>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader title="Cookbooks" />
@@ -84,15 +110,7 @@ export function CookbooksTable({
       />
 
       <div className="overflow-hidden rounded-lg border border-border">
-        {cookbooks.length === 0 ? (
-          <div className="p-4 text-sm text-muted">
-            <p>No cookbooks in this organization yet.</p>
-            <p className="mt-1">
-              Cookbooks are uploaded from a workstation (e.g. with knife or a
-              Policyfile); this console lists and removes them.
-            </p>
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="p-4 text-sm text-muted">
             No cookbooks matching &ldquo;{q}&rdquo;.
           </p>
