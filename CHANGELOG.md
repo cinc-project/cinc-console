@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.9.0 - 2026-11-04
+
+### Merged pull requests
+
+- Relicense under Apache 2.0 (#147)
+- Stop the release image build from writing the Actions cache (#146)
+
 ## 0.8.0 - 2026-11-04
 
 ### Merged pull requests
