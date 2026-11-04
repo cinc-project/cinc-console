@@ -22,7 +22,7 @@ services:
     # The published release matching this checkout (bumped by
     # scripts/set-version.mjs at release time). Set CINC_CONSOLE_IMAGE in .env
     # to pin another tag or digest; compose.build.yaml builds this checkout.
-    image: ${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.7.1}
+    image: ${CINC_CONSOLE_IMAGE:-ghcr.io/cinc-project/cinc-console:0.8.0}
 
     restart: unless-stopped
     init: true # tini as PID 1, for clean signal handling and zombie reaping
