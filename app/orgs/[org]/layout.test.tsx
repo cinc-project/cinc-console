@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { expect, test, vi, beforeEach } from "vitest";
+import pkg from "@/package.json";
 
 vi.mock("@/lib/guard", () => ({
   currentSession: async () => ({ username: "alice", displayName: "Alice" }),
@@ -32,6 +33,8 @@ test("renders the shell for an org the user belongs to", async () => {
   const el = await render("acme");
   expect(el.props.org).toBe("acme");
   expect(el.props.orgs).toEqual([{ name: "acme" }, { name: "beta" }]);
+  // The signed-in footer shows the console version from package.json.
+  expect(el.props.version).toBe(pkg.version);
 });
 
 test("404s a bogus org that the user does not belong to", async () => {

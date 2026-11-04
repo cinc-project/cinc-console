@@ -34,3 +34,28 @@ export function IconCheck() {
     </svg>
   );
 }
+
+export function IconMenu() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M3 5.5h14M3 10h14M3 14.5h14" />
+    </svg>
+  );
+}
+
+export function IconClose() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M5 5l10 10M15 5 5 15" />
+    </svg>
+  );
+}
+
+export function IconSearch() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <path d="m13 13 4 4" />
+    </svg>
+  );
+}

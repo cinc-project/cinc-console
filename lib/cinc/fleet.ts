@@ -1,6 +1,6 @@
 // Pure fleet-status logic for the org dashboard: classify nodes and roll them
-// up into the three "boom stat" counts (missing / unconfigured / outdated)
-// plus a per-node summary list. No I/O and no `server-only` import on purpose —
+// up into the stat-tile counts (recent / missing / unconfigured / outdated),
+// the last-check-in histogram, and a per-node summary list. No I/O and no `server-only` import on purpose —
 // this is the unit-tested core; `search.ts` does the actual fetching and feeds
 // these functions the parsed rows.
 
@@ -14,6 +14,11 @@ export type FleetNode = {
   policyGroup: string | null;
   /** chef_packages.chef.version reported by the client, or null if unknown. */
   chefVersion: string | null;
+  /** chef_environment, or null if the search returned none. */
+  environment: string | null;
+  /** automatic.platform / platform_version from ohai; null before the first run. */
+  platform: string | null;
+  platformVersion: string | null;
 };
 
 export type NodeStatus = "ok" | "missing" | "unconfigured";
@@ -53,15 +58,32 @@ export type NodeSummary = {
    */
   missing: boolean;
   unconfigured: boolean;
+  /** Why it's unconfigured — either or both can be set. */
+  emptyRunList: boolean;
+  defaultEnv: boolean;
+  /** Checked in within RECENT_WITHIN_MS. */
+  recent: boolean;
   lastCheckIn: number | null;
   chefVersion: string | null;
   clientStatus: ClientStatus;
+  environment: string | null;
+  platform: string | null;
+  platformVersion: string | null;
 };
 
 export type FleetStats = {
   total: number;
+  /** Checked in within RECENT_WITHIN_MS. */
+  recent: number;
   missing: number;
+  /** Never checked in (a subset of missing). */
+  never: number;
   unconfigured: number;
+  /** Unconfigured breakdown; a node with both reasons counts in each. */
+  emptyRunList: number;
+  defaultEnv: number;
+  /** Node count per CHECKIN_BUCKETS entry, same order. */
+  checkIns: number[];
   /** Clients needing an upgrade = eol + majorBehind. */
   outdated: number;
   eol: number;
@@ -86,6 +108,52 @@ export type FleetSnapshot = {
  */
 export const MISSING_AFTER_MS = 12 * 60 * 60 * 1000;
 
+/** "Checked in lately" for the first stat tile: within the last hour. */
+export const RECENT_WITHIN_MS = 60 * 60 * 1000;
+
+/** The environment every node lands in unless someone assigns one. */
+export const DEFAULT_ENVIRONMENT = "_default";
+
+const MIN_MS = 60 * 1000;
+const HOUR_MS = 60 * MIN_MS;
+
+/**
+ * Last-check-in histogram buckets, oldest last. `maxMs` is an inclusive upper
+ * bound on time since check-in; the 6–12h / 12h–7d boundary is exactly
+ * MISSING_AFTER_MS, so the "missing" line on the chart falls between two bars
+ * and every bar is either wholly present or wholly missing. `null` maxMs is the
+ * never-checked-in bucket.
+ */
+export const CHECKIN_BUCKETS: ReadonlyArray<{
+  /** Short axis label. */
+  label: string;
+  /** Spoken form for screen readers ("<30m" reads badly). */
+  description: string;
+  maxMs: number | null;
+  missing: boolean;
+}> = [
+  { label: "<30m", description: "under 30 minutes ago", maxMs: 30 * MIN_MS, missing: false },
+  { label: "30m–1h", description: "30 minutes to 1 hour ago", maxMs: HOUR_MS, missing: false },
+  { label: "1–6h", description: "1 to 6 hours ago", maxMs: 6 * HOUR_MS, missing: false },
+  { label: "6–12h", description: "6 to 12 hours ago", maxMs: MISSING_AFTER_MS, missing: false },
+  { label: "12h–7d", description: "12 hours to 7 days ago", maxMs: 7 * 24 * HOUR_MS, missing: true },
+  { label: ">7d", description: "over 7 days ago", maxMs: Number.POSITIVE_INFINITY, missing: true },
+  { label: "never", description: "never", maxMs: null, missing: true },
+];
+
+/** Index into CHECKIN_BUCKETS for a node. A future ohai_time (clock skew) counts as now. */
+export function checkInBucket(node: FleetNode, nowMs: number): number {
+  if (node.ohaiTime === null) return CHECKIN_BUCKETS.length - 1;
+  const delta = Math.max(0, nowMs - node.ohaiTime * 1000);
+  return CHECKIN_BUCKETS.findIndex((b) => b.maxMs !== null && delta <= b.maxMs);
+}
+
+/** Checked in within RECENT_WITHIN_MS (inclusive). Never-seen nodes are not recent. */
+export function isRecent(node: FleetNode, nowMs: number): boolean {
+  if (node.ohaiTime === null) return false;
+  return nowMs - node.ohaiTime * 1000 <= RECENT_WITHIN_MS;
+}
+
 /**
  * Missing: hasn't reported within MISSING_AFTER_MS, OR has never reported at
  * all (no ohai_time). A brand-new node that has never converged reads as
@@ -102,12 +170,27 @@ export function isMissing(
 }
 
 /**
- * Unconfigured: nothing tells the node what to do — an empty run list and no
- * policy. Such a node check in and converge to a no-op. (A policyfile node has
- * an empty run_list but a policy_name, so it is configured.)
+ * Empty run list: nothing tells the node what to do, so it converges to a
+ * no-op. A policyfile node has an empty run_list but a policy_name, so it is
+ * configured.
  */
-export function isUnconfigured(node: FleetNode): boolean {
+export function hasEmptyRunList(node: FleetNode): boolean {
   return node.runList.length === 0 && !node.policyName;
+}
+
+/**
+ * Left in `_default`: nobody assigned the node an environment, so it gets no
+ * environment pins or attributes. Policyfile nodes use policy_group instead of
+ * environments and normally sit in `_default`, so they're exempt. An unknown
+ * environment (null) is not flagged — we don't guess.
+ */
+export function isDefaultEnvironment(node: FleetNode): boolean {
+  return node.environment === DEFAULT_ENVIRONMENT && !node.policyName;
+}
+
+/** Unconfigured: an empty run list, or left in `_default` (see the two above). */
+export function isUnconfigured(node: FleetNode): boolean {
+  return hasEmptyRunList(node) || isDefaultEnvironment(node);
 }
 
 /**
@@ -214,10 +297,18 @@ export function buildSnapshot(
   const eol = nodes.filter((n) => statusOf(n) === "eol").length;
   const majorBehind = nodes.filter((n) => statusOf(n) === "major-behind").length;
 
+  const checkIns = CHECKIN_BUCKETS.map(() => 0);
+  for (const n of nodes) checkIns[checkInBucket(n, nowMs)]++;
+
   const stats: FleetStats = {
     total: nodes.length,
+    recent: nodes.filter((n) => isRecent(n, nowMs)).length,
     missing: nodes.filter((n) => isMissing(n, nowMs)).length,
+    never: nodes.filter((n) => n.ohaiTime === null).length,
     unconfigured: nodes.filter(isUnconfigured).length,
+    emptyRunList: nodes.filter(hasEmptyRunList).length,
+    defaultEnv: nodes.filter(isDefaultEnvironment).length,
+    checkIns,
     outdated: eol + majorBehind,
     eol,
     majorBehind,
@@ -231,9 +322,15 @@ export function buildSnapshot(
       status: primaryStatus(n, nowMs),
       missing: isMissing(n, nowMs),
       unconfigured: isUnconfigured(n),
+      emptyRunList: hasEmptyRunList(n),
+      defaultEnv: isDefaultEnvironment(n),
+      recent: isRecent(n, nowMs),
       lastCheckIn: n.ohaiTime,
       chefVersion: n.chefVersion,
       clientStatus: statusOf(n),
+      environment: n.environment,
+      platform: n.platform,
+      platformVersion: n.platformVersion,
     }))
     .sort((a, b) => (b.lastCheckIn ?? 0) - (a.lastCheckIn ?? 0));
 

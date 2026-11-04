@@ -75,3 +75,23 @@ a {
   background: var(--primary);
   color: var(--primary-foreground);
 }
+
+/* Mobile nav drawer entrance. Only applied under `motion-safe:`, so users who
+   ask for reduced motion get the drawer instantly. */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

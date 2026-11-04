@@ -14,6 +14,12 @@ function node(over: Partial<NodeSummary>): NodeSummary {
     lastCheckIn: 1_700_000_000,
     chefVersion: "19.3.15",
     clientStatus: "current",
+    emptyRunList: false,
+    defaultEnv: false,
+    recent: true,
+    environment: "production",
+    platform: "ubuntu",
+    platformVersion: "24.04",
     ...over,
   };
 }

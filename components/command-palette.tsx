@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Org } from "@/lib/cinc/orgs";
 import { NAV } from "@/lib/nav";
+import { IconSearch } from "@/components/ui/icons";
 import { searchOrgObjects, type PaletteObject } from "@/lib/palette-search";
 
 type Command = { id: string; label: string; hint?: string; href: string };
@@ -153,15 +154,19 @@ export function CommandPalette({ org, orgs }: { org: string; orgs: Org[] }) {
         type="button"
         onClick={openPalette}
         aria-keyshortcuts="Meta+K Control+K"
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-bg px-2 py-1 text-xs text-muted hover:border-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="inline-flex h-10 w-10 items-center justify-center gap-2 rounded-md border border-border bg-bg text-xs text-muted hover:border-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:h-auto sm:w-auto sm:px-2 sm:py-1"
       >
-        {/* The accessible name must start with the visible label (WCAG 2.5.3
+        {/* Phones get a search icon; the "Jump to…" text stays in the
+            accessible name either way. It must start the name (WCAG 2.5.3
             Label in Name), so speech users can say "Jump to". */}
-        <span>Jump to…</span>
+        <span aria-hidden="true" className="sm:hidden">
+          <IconSearch />
+        </span>
+        <span className="sr-only sm:not-sr-only">Jump to…</span>
         <span className="sr-only"> (command palette)</span>
         <kbd
           aria-hidden="true"
-          className="rounded border border-border bg-surface px-1 font-sans"
+          className="hidden rounded border border-border bg-surface px-1 font-sans sm:inline"
         >
           ⌘K
         </kbd>

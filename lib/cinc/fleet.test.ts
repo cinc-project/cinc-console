@@ -6,9 +6,13 @@ import {
   compareVersions,
   isMissing,
   isUnconfigured,
+  isRecent,
+  checkInBucket,
+  CHECKIN_BUCKETS,
   majorOf,
   newestVersion,
   MISSING_AFTER_MS,
+  RECENT_WITHIN_MS,
   type ClientLifecycle,
   type FleetNode,
 } from "./fleet";
@@ -31,6 +35,9 @@ function node(over: Partial<FleetNode> = {}): FleetNode {
     policyName: null,
     policyGroup: null,
     chefVersion: "19.3.15",
+    environment: "production",
+    platform: "ubuntu",
+    platformVersion: "24.04",
     ...over,
   };
 }
@@ -61,6 +68,59 @@ describe("isUnconfigured", () => {
 
   it("is false for a policyfile node (empty run-list but a policy)", () => {
     expect(isUnconfigured(node({ runList: [], policyName: "web" }))).toBe(false);
+  });
+
+  it("is true for a run-list node left in the _default environment", () => {
+    expect(isUnconfigured(node({ environment: "_default" }))).toBe(true);
+  });
+
+  it("is false for a policyfile node in _default (policies don't use environments)", () => {
+    expect(
+      isUnconfigured(node({ runList: [], policyName: "web", environment: "_default" })),
+    ).toBe(false);
+  });
+
+  it("does not guess when the environment is unknown", () => {
+    expect(isUnconfigured(node({ environment: null }))).toBe(false);
+  });
+});
+
+describe("isRecent", () => {
+  it("is true within the last hour, inclusive", () => {
+    expect(isRecent(node({ ohaiTime: (NOW - RECENT_WITHIN_MS) / 1000 }), NOW)).toBe(true);
+  });
+
+  it("is false past the hour or when never seen", () => {
+    expect(isRecent(node({ ohaiTime: (NOW - RECENT_WITHIN_MS - 1000) / 1000 }), NOW)).toBe(false);
+    expect(isRecent(node({ ohaiTime: null }), NOW)).toBe(false);
+  });
+});
+
+describe("checkInBucket", () => {
+  const ago = (ms: number) => node({ ohaiTime: (NOW - ms) / 1000 });
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+  const label = (n: FleetNode) => CHECKIN_BUCKETS[checkInBucket(n, NOW)].label;
+
+  it("places a node by time since its last check-in", () => {
+    expect(label(ago(0))).toBe("<30m");
+    expect(label(ago(30 * MIN))).toBe("<30m");
+    expect(label(ago(45 * MIN))).toBe("30m–1h");
+    expect(label(ago(3 * HOUR))).toBe("1–6h");
+    expect(label(ago(12 * HOUR))).toBe("6–12h");
+    expect(label(ago(13 * HOUR))).toBe("12h–7d");
+    expect(label(ago(30 * 24 * HOUR))).toBe(">7d");
+    expect(label(node({ ohaiTime: null }))).toBe("never");
+  });
+
+  it("splits at the missing threshold so the 12h line falls between buckets", () => {
+    // isMissing is `> MISSING_AFTER_MS`: exactly 12h is still present.
+    expect(CHECKIN_BUCKETS[checkInBucket(ago(MISSING_AFTER_MS), NOW)].missing).toBe(false);
+    expect(CHECKIN_BUCKETS[checkInBucket(ago(MISSING_AFTER_MS + 1000), NOW)].missing).toBe(true);
+  });
+
+  it("treats a check-in stamped in the future (clock skew) as just now", () => {
+    expect(label(ago(-5 * MIN))).toBe("<30m");
   });
 });
 
@@ -152,6 +212,9 @@ describe("buildSnapshot", () => {
     expect(snap.stats.total).toBe(4);
     expect(snap.stats.missing).toBe(2); // web2 + fresh
     expect(snap.stats.unconfigured).toBe(1); // fresh
+    expect(snap.stats.recent).toBe(2); // web1 + db1
+    expect(snap.stats.never).toBe(1); // fresh
+    expect(snap.stats.checkIns).toEqual([2, 0, 0, 0, 1, 0, 1]);
     expect(snap.stats.eol).toBe(1); // web2
     expect(snap.stats.majorBehind).toBe(1); // db1
     expect(snap.stats.outdated).toBe(2); // eol + majorBehind
@@ -199,5 +262,29 @@ describe("buildSnapshot", () => {
     expect(snap.nodes.filter((n) => n.missing)).toHaveLength(
       snap.stats.missing,
     );
+  });
+
+  it("splits unconfigured into empty run list vs _default, counting a node once", () => {
+    const snap = buildSnapshot(
+      [
+        node({ name: "a", runList: [] }), // empty run list
+        node({ name: "b", environment: "_default" }), // _default
+        node({ name: "c", runList: [], environment: "_default" }), // both
+        node({ name: "d" }), // configured
+      ],
+      NOW,
+      LIFECYCLE,
+    );
+    expect(snap.stats.unconfigured).toBe(3);
+    expect(snap.stats.emptyRunList).toBe(2);
+    expect(snap.stats.defaultEnv).toBe(2);
+
+    const c = snap.nodes.find((n) => n.name === "c")!;
+    expect(c.emptyRunList).toBe(true);
+    expect(c.defaultEnv).toBe(true);
+    expect(c.environment).toBe("_default");
+    expect(c.platform).toBe("ubuntu");
+    expect(c.platformVersion).toBe("24.04");
+    expect(c.recent).toBe(true);
   });
 });

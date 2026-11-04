@@ -21,7 +21,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
       aria-label="Organization"
       value={current}
       onChange={onChange}
-      className="rounded-md border border-border bg-bg px-2 py-1 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="max-w-[9rem] rounded-md border border-border bg-bg px-2 py-1 text-sm sm:max-w-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       {orgs.map((o) => (
         <option key={o.name} value={o.name}>

@@ -17,9 +17,19 @@ import {
 import { compareVersions, type NodeSummary } from "@/lib/cinc/fleet";
 import { relativeAgo } from "@/lib/time";
 import { ClientVersion } from "@/components/client-chip";
+import { SortSelect, type SortOption } from "@/components/ui/sort-select";
 
 const SORT_KEYS = ["name", "lastSeen", "client"] as const;
 const DEFAULT_SORT: SortState = { key: "name", dir: "asc" };
+
+/** The phone sort picker's choices (no column headers to tap there). */
+const MOBILE_SORTS: SortOption[] = [
+  { label: "Name, A–Z", sort: DEFAULT_SORT },
+  { label: "Name, Z–A", sort: { key: "name", dir: "desc" } },
+  { label: "Last check-in, newest", sort: { key: "lastSeen", dir: "desc" } },
+  { label: "Last check-in, oldest", sort: { key: "lastSeen", dir: "asc" } },
+  { label: "Client, oldest first", sort: { key: "client", dir: "asc" } },
+];
 
 /** Bounds the DOM only — the search sweep returns every node at once. */
 const PAGE_SIZE = 50;
@@ -64,7 +74,7 @@ export function NodesTable({
 }) {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
-  const { sort, setSort } = useSort("sort", DEFAULT_SORT, SORT_KEYS);
+  const { sort, setSort, replaceSort } = useSort("sort", DEFAULT_SORT, SORT_KEYS);
 
   // Start from the snapshot time (no hydration mismatch), then tick to the live
   // clock each second so the "Last check-in" labels age in place.
@@ -103,12 +113,21 @@ export function NodesTable({
         }
       />
 
-      <Input
-        placeholder="Filter nodes…"
-        value={q}
-        onChange={(e) => onFilter(e.target.value)}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Filter nodes…"
+          aria-label="Filter nodes"
+          value={q}
+          onChange={(e) => onFilter(e.target.value)}
+          className="w-full sm:max-w-xs"
+        />
+        <SortSelect
+          options={MOBILE_SORTS}
+          value={sort}
+          onChange={replaceSort}
+          className="sm:hidden"
+        />
+      </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
         {nodes.length === 0 ? (
@@ -124,55 +143,82 @@ export function NodesTable({
             No nodes matching &ldquo;{q}&rdquo;.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Nodes, sortable by name, last check-in, and client version
-              </caption>
-              <thead>
-                <tr className="border-b border-border text-left text-muted">
-                  <SortableTh label="Name" sortKey="name" sort={sort} onSort={setSort} />
-                  <SortableTh
-                    label="Last check-in"
-                    sortKey="lastSeen"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                  <SortableTh
-                    label="Client version"
-                    sortKey="client"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((n) => (
-                  <tr
-                    key={n.name}
-                    className="border-b border-border last:border-0 hover:bg-surface-2"
+          <>
+            {/* Phones: one card per node. From sm up: the sortable table. */}
+            <ul aria-label="Nodes" className="divide-y divide-border sm:hidden">
+              {visible.map((n) => (
+                <li key={n.name}>
+                  <Link
+                    href={`${basePath}/${encodeURIComponent(n.name)}`}
+                    className="block space-y-1 px-4 py-3 transition-colors hover:bg-surface-2"
                   >
-                    <td className="p-0">
-                      <Link
-                        href={`${basePath}/${encodeURIComponent(n.name)}`}
-                        className="block px-4 py-2.5 font-mono text-sm text-text transition-colors hover:text-link"
-                      >
-                        <span className="truncate">{n.name}</span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted">
-                      {n.lastCheckIn === null
-                        ? "never"
-                        : relativeAgo(now - n.lastCheckIn * 1000)}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 break-all font-mono text-sm text-text">
+                        {n.name}
+                      </span>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-muted">
+                        {n.lastCheckIn === null
+                          ? "never"
+                          : relativeAgo(now - n.lastCheckIn * 1000)}
+                      </span>
+                    </span>
+                    <span className="block text-xs text-muted">
                       <ClientVersion version={n.chefVersion} status={n.clientStatus} />
-                    </td>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <caption className="sr-only">
+                  Nodes, sortable by name, last check-in, and client version
+                </caption>
+                <thead>
+                  <tr className="border-b border-border text-left text-muted">
+                    <SortableTh label="Name" sortKey="name" sort={sort} onSort={setSort} />
+                    <SortableTh
+                      label="Last check-in"
+                      sortKey="lastSeen"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Client version"
+                      sortKey="client"
+                      sort={sort}
+                      onSort={setSort}
+                    />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visible.map((n) => (
+                    <tr
+                      key={n.name}
+                      className="border-b border-border last:border-0 hover:bg-surface-2"
+                    >
+                      <td className="p-0">
+                        <Link
+                          href={`${basePath}/${encodeURIComponent(n.name)}`}
+                          className="block px-4 py-2.5 font-mono text-sm text-text transition-colors hover:text-link"
+                        >
+                          <span className="truncate">{n.name}</span>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted">
+                        {n.lastCheckIn === null
+                          ? "never"
+                          : relativeAgo(now - n.lastCheckIn * 1000)}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted">
+                        <ClientVersion version={n.chefVersion} status={n.clientStatus} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
