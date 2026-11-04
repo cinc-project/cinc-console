@@ -6,6 +6,8 @@ import { listUserOrgs } from "@/lib/cinc/orgs";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { Card } from "@/components/ui/card";
 import { UserMenu } from "@/components/user-menu";
+import { SiteFooter } from "@/components/site-footer";
+import { APP_VERSION } from "@/lib/version";
 
 export default async function OrgsPage() {
   const { username, displayName } = await currentSession();
@@ -17,7 +19,8 @@ export default async function OrgsPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
+    <main className="flex-1">
       <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
         <div className="flex items-center gap-2 text-lg font-semibold tracking-tight">
           <Image
@@ -58,5 +61,7 @@ export default async function OrgsPage() {
         )}
       </div>
     </main>
+    <SiteFooter version={APP_VERSION} />
+    </div>
   );
 }

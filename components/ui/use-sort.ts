@@ -25,19 +25,19 @@ export function useSort(
   param: string,
   def: SortState,
   keys: readonly string[],
-): { sort: SortState; setSort: (key: string) => void } {
+): {
+  sort: SortState;
+  setSort: (key: string) => void;
+  replaceSort: (next: SortState) => void;
+} {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const sort = parseSort(params.get(param), def, keys);
 
-  const setSort = useCallback(
-    (key: string) => {
-      const next: SortState =
-        key === sort.key
-          ? { key, dir: flip(sort.dir) }
-          : { key, dir: "asc" as SortDir };
-
+  /** Set an exact key + direction (the mobile sort picker chooses both at once). */
+  const replaceSort = useCallback(
+    (next: SortState) => {
       const qs = new URLSearchParams(params.toString());
       if (serializeSort(next) === serializeSort(def)) qs.delete(param);
       else qs.set(param, serializeSort(next));
@@ -47,8 +47,18 @@ export function useSort(
         scroll: false,
       });
     },
-    [router, pathname, params, param, sort.key, sort.dir, def],
+    [router, pathname, params, param, def],
   );
 
-  return { sort, setSort };
+  const setSort = useCallback(
+    (key: string) =>
+      replaceSort(
+        key === sort.key
+          ? { key, dir: flip(sort.dir) }
+          : { key, dir: "asc" as SortDir },
+      ),
+    [replaceSort, sort.key, sort.dir],
+  );
+
+  return { sort, setSort, replaceSort };
 }

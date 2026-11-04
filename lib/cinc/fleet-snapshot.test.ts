@@ -22,6 +22,9 @@ const node = (name: string, ohaiTime: number | null): FleetNode => ({
   policyName: null,
   policyGroup: null,
   chefVersion: "18.5.0",
+  environment: "production",
+  platform: "ubuntu",
+  platformVersion: "24.04",
 });
 const lifecycle = { latestMajor: 19, latestVersion: "19.1.0", eolMajors: [16] };
 

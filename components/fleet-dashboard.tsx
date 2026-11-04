@@ -17,11 +17,13 @@ import {
   compareVersions,
   type FleetSnapshot,
   type FleetStats,
-  type NodeStatus,
   type NodeSummary,
 } from "@/lib/cinc/fleet";
 import { relativeAgo } from "@/lib/time";
-import { ClientVersion } from "@/components/client-chip";
+import { PlatformIcon } from "@/components/platform/platform-icon";
+import { CheckInHistogram } from "@/components/fleet-histogram";
+import { TILE_GRID } from "@/components/fleet-skeleton";
+import { SortSelect, type SortOption } from "@/components/ui/sort-select";
 import {
   IconArrowDown,
   IconCheck,
@@ -30,7 +32,7 @@ import {
 } from "@/components/ui/icons";
 
 /** Which stat tile is the active filter for the node list, if any. */
-type Filter = "missing" | "unconfigured" | "outdated" | null;
+type Filter = "recent" | "missing" | "unconfigured" | "outdated" | null;
 
 // The node list refreshes every 10s so it stays live. The boom-stat tiles up
 // top refresh on a calmer 60s cadence — the counts move slowly and the constant
@@ -44,19 +46,40 @@ const STATS_REFRESH_MS = 60_000;
 const MAX_ROWS = 200;
 
 /** Sortable columns of the node table. */
-const SORT_KEYS = ["node", "status", "lastSeen", "client"] as const;
+const SORT_KEYS = [
+  "node",
+  "status",
+  "lastSeen",
+  "env",
+  "platform",
+  "client",
+] as const;
 /** Default order matches the server's snapshot: most recently seen first. */
 const DEFAULT_SORT: SortState = { key: "lastSeen", dir: "desc" };
 
+/** The phone sort picker's choices (no column headers to tap there). */
+const MOBILE_SORTS: SortOption[] = [
+  { label: "Last check-in, newest", sort: DEFAULT_SORT },
+  { label: "Last check-in, oldest", sort: { key: "lastSeen", dir: "asc" } },
+  { label: "Status, worst first", sort: { key: "status", dir: "asc" } },
+  { label: "Name, A–Z", sort: { key: "node", dir: "asc" } },
+  { label: "Environment, A–Z", sort: { key: "env", dir: "asc" } },
+  { label: "Client, oldest first", sort: { key: "client", dir: "asc" } },
+];
+
+const isOutdated = (n: NodeSummary) =>
+  n.clientStatus === "eol" || n.clientStatus === "major-behind";
+
 /**
- * Severity order for sorting the Status column: ascending surfaces the nodes
- * that need attention first (missing, then unconfigured, then healthy).
+ * Severity for sorting the Status column: ascending surfaces the nodes that
+ * need attention first — missing, then unconfigured, then outdated, then
+ * healthy. Within a tier, a node with more problems sorts first.
  */
-const STATUS_RANK: Record<NodeStatus, number> = {
-  missing: 0,
-  unconfigured: 1,
-  ok: 2,
-};
+function statusRank(n: NodeSummary): number {
+  const tier = n.missing ? 0 : n.unconfigured ? 1 : isOutdated(n) ? 2 : 3;
+  const problems = statusChips(n).length;
+  return tier * 10 - problems;
+}
 
 /** Order nodes by the chosen column; "never seen" / "unknown version" pin last. */
 function sortNodes(nodes: NodeSummary[], sort: SortState): NodeSummary[] {
@@ -66,11 +89,21 @@ function sortNodes(nodes: NodeSummary[], sort: SortState): NodeSummary[] {
       case "node":
         return applyDir(byString(a.name, b.name), dir);
       case "status":
-        return applyDir(byNumber(STATUS_RANK[a.status], STATUS_RANK[b.status]), dir);
+        return applyDir(byNumber(statusRank(a), statusRank(b)), dir);
       case "lastSeen":
         return nullsLast<number>((x, y) => applyDir(byNumber(x, y), dir))(
           a.lastCheckIn,
           b.lastCheckIn,
+        );
+      case "env":
+        return nullsLast<string>((x, y) => applyDir(byString(x, y), dir))(
+          a.environment,
+          b.environment,
+        );
+      case "platform":
+        return nullsLast<string>((x, y) => applyDir(byString(x, y), dir))(
+          platformText(a),
+          platformText(b),
         );
       case "client":
         return nullsLast<string>((x, y) => applyDir(compareVersions(x, y), dir))(
@@ -178,7 +211,7 @@ export function FleetDashboard({
     return () => clearInterval(id);
   }, []);
 
-  const { sort, setSort } = useSort("sort", DEFAULT_SORT, SORT_KEYS);
+  const { sort, setSort, replaceSort } = useSort("sort", DEFAULT_SORT, SORT_KEYS);
   // `stats` (tiles) is the slow-cadence state above; `nodes` (list) tracks the
   // 10s snapshot directly.
   const nodes = snapshot?.nodes ?? [];
@@ -190,11 +223,20 @@ export function FleetDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Stat tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Stat tiles — each filters the node list below */}
+      <div className={TILE_GRID}>
+        <StatTile
+          label="Checked in · last hour"
+          help={stats ? `of ${stats.total} nodes` : "…"}
+          count={stats?.recent}
+          tone="success"
+          icon={<IconCheck />}
+          active={filter === "recent"}
+          onClick={() => toggle("recent")}
+        />
         <StatTile
           label="Missing"
-          help="No check-in in the last 12 hours"
+          help={<MissingHelp stats={stats} />}
           count={stats?.missing}
           tone="danger"
           icon={<IconWarning />}
@@ -203,7 +245,7 @@ export function FleetDashboard({
         />
         <StatTile
           label="Unconfigured"
-          help="Empty run-list and no policy"
+          help={<UnconfiguredHelp stats={stats} />}
           count={stats?.unconfigured}
           tone="warn"
           icon={<IconQuestion />}
@@ -220,6 +262,8 @@ export function FleetDashboard({
           onClick={() => toggle("outdated")}
         />
       </div>
+
+      {stats && <CheckInHistogram counts={stats.checkIns} />}
 
       {/* Live status line + errors */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -252,10 +296,10 @@ export function FleetDashboard({
       </div>
 
       {/* Node list */}
-      <Card className="p-0">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <Card flush>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
           <h2 className="text-sm font-medium text-text">
-            {filter ? `${filterLabel(filter)} nodes` : "Nodes"}
+            {filter ? filterHeading(filter) : "Nodes"}
             <span className="ml-2 text-muted">{shown.length}</span>
           </h2>
           {filter && (
@@ -267,6 +311,12 @@ export function FleetDashboard({
               Clear filter
             </button>
           )}
+          <SortSelect
+            options={MOBILE_SORTS}
+            value={sort}
+            onChange={replaceSort}
+            className="w-full sm:hidden"
+          />
         </div>
 
         {capped.length === 0 ? (
@@ -274,46 +324,67 @@ export function FleetDashboard({
             {snapshot ? "No nodes match." : "Loading…"}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Fleet nodes; use the column headers to sort
-              </caption>
-              <thead>
-                <tr className="border-b border-border text-left text-muted">
-                  <SortableTh
-                    label="Node"
-                    sortKey="node"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                  <SortableTh
-                    label="Status"
-                    sortKey="status"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                  <SortableTh
-                    label="Last check-in"
-                    sortKey="lastSeen"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                  <SortableTh
-                    label="Client"
-                    sortKey="client"
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                </tr>
-              </thead>
-              <tbody>
-                {capped.map((n) => (
-                  <NodeRow key={n.name} org={org} node={n} now={now} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Phones: one card per node. From sm up: the sortable table. Both
+                render; CSS shows one, so there's no layout flash on hydration. */}
+            <ul aria-label="Fleet nodes" className="divide-y divide-border sm:hidden">
+              {capped.map((n) => (
+                <NodeCard key={n.name} org={org} node={n} now={now} />
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <caption className="sr-only">
+                  Fleet nodes; use the column headers to sort
+                </caption>
+                <thead>
+                  <tr className="border-b border-border text-left text-muted">
+                    <SortableTh
+                      label="Node"
+                      sortKey="node"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Status"
+                      sortKey="status"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Last check-in"
+                      sortKey="lastSeen"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Environment"
+                      sortKey="env"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Platform"
+                      sortKey="platform"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                    <SortableTh
+                      label="Client"
+                      sortKey="client"
+                      sort={sort}
+                      onSort={setSort}
+                    />
+                  </tr>
+                </thead>
+                <tbody>
+                  {capped.map((n) => (
+                    <NodeRow key={n.name} org={org} node={n} now={now} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {shown.length > MAX_ROWS && (
@@ -347,17 +418,66 @@ function NodeRow({
         </a>
       </td>
       <td className="px-4 py-2">
-        <StatusBadge status={node.status} />
+        <StatusChips node={node} />
       </td>
-      <td className="px-4 py-2 text-muted">
+      <td className="whitespace-nowrap px-4 py-2 text-muted">
         {node.lastCheckIn === null
           ? "never"
           : relativeAgo(now - node.lastCheckIn * 1000)}
       </td>
+      <td className="px-4 py-2 font-mono text-muted">
+        {node.environment ?? "—"}
+      </td>
       <td className="px-4 py-2 text-muted">
-        <ClientVersion version={node.chefVersion} status={node.clientStatus} />
+        {node.platform === null ? (
+          "—"
+        ) : (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span aria-hidden="true">
+              <PlatformIcon platform={node.platform} />
+            </span>
+            {platformText(node)}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-2 tabular-nums text-muted">
+        {node.chefVersion ?? "—"}
       </td>
     </tr>
+  );
+}
+
+/** Phone layout for one node: name + last check-in, status chips, details. */
+function NodeCard({
+  org,
+  node,
+  now,
+}: {
+  org: string;
+  node: NodeSummary;
+  now: number;
+}) {
+  const details = [node.environment, platformText(node), node.chefVersion]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <li className="space-y-1.5 px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <a
+          href={`/orgs/${org}/nodes/${encodeURIComponent(node.name)}`}
+          className="min-w-0 break-all font-mono text-sm text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {node.name}
+        </a>
+        <span className="shrink-0 whitespace-nowrap text-xs text-muted">
+          {node.lastCheckIn === null
+            ? "never"
+            : relativeAgo(now - node.lastCheckIn * 1000)}
+        </span>
+      </div>
+      <StatusChips node={node} />
+      {details && <p className="text-xs text-muted">{details}</p>}
+    </li>
   );
 }
 
@@ -373,12 +493,13 @@ function StatTile({
   label: string;
   help: React.ReactNode;
   count: number | undefined;
-  tone: "danger" | "warn" | "link";
+  tone: "success" | "danger" | "warn" | "link";
   icon: React.ReactNode;
   active: boolean;
   onClick: () => void;
 }) {
   const toneText = {
+    success: "text-success",
     danger: "text-danger",
     warn: "text-warn",
     link: "text-link",
@@ -390,20 +511,20 @@ function StatTile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-lg border bg-surface p-5 text-left shadow-[var(--shadow-sm)] transition-colors",
+        "rounded-lg border bg-surface p-3 text-left shadow-[var(--shadow-sm)] transition-colors sm:p-5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "border-primary bg-surface-2"
           : "border-border hover:border-muted",
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-medium text-text">{label}</span>
-        <span className={cn("shrink-0", toneText)} aria-hidden="true">
+        <span className={cn("mt-0.5 shrink-0", toneText)} aria-hidden="true">
           {icon}
         </span>
       </div>
-      <div className={cn("mt-2 text-3xl font-semibold tabular-nums", toneText)}>
+      <div className={cn("mt-1 text-2xl font-semibold tabular-nums sm:mt-2 sm:text-3xl", toneText)}>
         {count === undefined ? "—" : count}
       </div>
       <div className="mt-1 text-xs text-muted">{help}</div>
@@ -452,47 +573,119 @@ function OutdatedHelp({ stats }: { stats?: FleetStats }) {
   );
 }
 
-function StatusBadge({ status }: { status: NodeStatus }) {
-  const map: Record<
-    NodeStatus,
-    { label: string; cls: string; icon: React.ReactNode }
-  > = {
-    ok: { label: "OK", cls: "text-success", icon: <IconCheck /> },
-    missing: { label: "Missing", cls: "text-danger", icon: <IconWarning /> },
-    unconfigured: {
-      label: "Unconfigured",
-      cls: "text-warn",
-      icon: <IconQuestion />,
-    },
-  };
-  const { label, cls, icon } = map[status];
+/** Missing-tile subtext: the threshold, plus how many have never checked in. */
+function MissingHelp({ stats }: { stats?: FleetStats }) {
+  if (!stats) return <>…</>;
   return (
-    <span className={cn("inline-flex items-center gap-1.5", cls)}>
-      <span aria-hidden="true">{icon}</span>
-      {label}
-    </span>
+    <>
+      No check-in in 12 hours
+      {stats.never > 0 && ` · ${stats.never} never`}
+    </>
   );
+}
+
+/** Unconfigured-tile subtext: why — empty run list vs left in _default. */
+function UnconfiguredHelp({ stats }: { stats?: FleetStats }) {
+  if (!stats) return <>…</>;
+  if (stats.unconfigured === 0) return <>Every node has a run list or policy</>;
+  const parts = [
+    stats.emptyRunList > 0 && `${stats.emptyRunList} empty run list`,
+    stats.defaultEnv > 0 && `${stats.defaultEnv} in _default`,
+  ].filter(Boolean);
+  return <>{parts.join(" · ")}</>;
+}
+
+type Chip = {
+  key: string;
+  label: string;
+  tone: "success" | "danger" | "warn";
+  icon: React.ReactNode;
+};
+
+/**
+ * Every problem a node has, one chip each — the same diagnostics the stat
+ * tiles count, so a node in a filtered list always shows why it's there.
+ */
+function statusChips(n: NodeSummary): Chip[] {
+  const chips: Chip[] = [];
+  if (n.missing) {
+    chips.push({
+      key: "missing",
+      label: n.lastCheckIn === null ? "Never checked in" : "Missing",
+      tone: "danger",
+      icon: <IconWarning />,
+    });
+  }
+  if (n.emptyRunList) {
+    chips.push({ key: "runlist", label: "Empty run list", tone: "warn", icon: <IconQuestion /> });
+  }
+  if (n.defaultEnv) {
+    chips.push({ key: "env", label: "_default env", tone: "warn", icon: <IconQuestion /> });
+  }
+  if (n.clientStatus === "eol") {
+    chips.push({ key: "client", label: "EOL client", tone: "danger", icon: <IconWarning /> });
+  } else if (n.clientStatus === "major-behind") {
+    chips.push({ key: "client", label: "Client behind", tone: "warn", icon: <IconArrowDown /> });
+  }
+  return chips;
+}
+
+const CHIP_TONE = {
+  success: "border-success text-success",
+  danger: "border-danger text-danger",
+  warn: "border-warn text-warn",
+} as const;
+
+/** Icon + text + border on each chip: severity is never carried by color alone. */
+function StatusChips({ node }: { node: NodeSummary }) {
+  const chips = statusChips(node);
+  const shown: Chip[] =
+    chips.length > 0
+      ? chips
+      : [{ key: "ok", label: "Healthy", tone: "success", icon: <IconCheck /> }];
+  return (
+    <ul className="flex flex-wrap gap-1">
+      {shown.map((c) => (
+        <li
+          key={c.key}
+          className={cn(
+            "inline-flex h-5 items-center gap-1 whitespace-nowrap rounded border px-1.5 text-xs leading-none",
+            CHIP_TONE[c.tone],
+          )}
+        >
+          <span aria-hidden="true">{c.icon}</span>
+          {c.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function platformText(n: NodeSummary): string | null {
+  if (n.platform === null) return null;
+  return n.platformVersion ? `${n.platform} ${n.platformVersion}` : n.platform;
 }
 
 // --- helpers -------------------------------------------------------------
 
-// Filter by the same independent diagnostics the stat tiles count — NOT the
-// single-valued `status` badge. A node that's both missing and unconfigured
-// shows a "missing" badge but is counted by the unconfigured tile, so filtering
-// on the badge would hide it and the list wouldn't match the tile's number.
+// Filter by the same independent diagnostic flags the stat tiles count (not the
+// snapshot's single-valued `status`), so a node that's both missing and
+// unconfigured appears under either tile and the list matches the tile's number.
 function filterNodes(nodes: NodeSummary[], filter: Filter): NodeSummary[] {
   if (filter === null) return nodes;
+  if (filter === "recent") return nodes.filter((n) => n.recent);
   if (filter === "missing") return nodes.filter((n) => n.missing);
   if (filter === "unconfigured") return nodes.filter((n) => n.unconfigured);
-  return nodes.filter(
-    (n) => n.clientStatus === "eol" || n.clientStatus === "major-behind",
-  );
+  return nodes.filter(isOutdated);
 }
 
-function filterLabel(filter: Exclude<Filter, null>): string {
-  return { missing: "Missing", unconfigured: "Unconfigured", outdated: "Outdated" }[
-    filter
-  ];
+function filterHeading(filter: Exclude<Filter, null>): string {
+  return {
+    recent: "Checked in within the hour",
+    missing: "Missing nodes",
+    unconfigured: "Unconfigured nodes",
+    outdated: "Nodes with outdated clients",
+  }[filter];
 }
 
 function explainError(error: string): string {

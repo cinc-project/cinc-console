@@ -81,6 +81,9 @@ const FLEET_KEYS: Record<string, string[]> = {
   policy_name: ["policy_name"],
   policy_group: ["policy_group"],
   chef_version: ["chef_packages", "chef", "version"],
+  chef_environment: ["chef_environment"],
+  platform: ["platform"],
+  platform_version: ["platform_version"],
 };
 
 type RawFleetRow = {
@@ -90,6 +93,9 @@ type RawFleetRow = {
   policy_name?: unknown;
   policy_group?: unknown;
   chef_version?: unknown;
+  chef_environment?: unknown;
+  platform?: unknown;
+  platform_version?: unknown;
 };
 
 function asString(v: unknown): string | null {
@@ -109,6 +115,9 @@ export function parseFleetRow(row: RawFleetRow): FleetNode {
     policyName: asString(row.policy_name),
     policyGroup: asString(row.policy_group),
     chefVersion: asString(row.chef_version),
+    environment: asString(row.chef_environment),
+    platform: asString(row.platform),
+    platformVersion: asString(row.platform_version),
   };
 }
 

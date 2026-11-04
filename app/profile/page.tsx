@@ -5,6 +5,8 @@ import { getUser } from "@/lib/cinc/users";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { getConfig } from "@/lib/config";
 import { UserMenu } from "@/components/user-menu";
+import { SiteFooter } from "@/components/site-footer";
+import { APP_VERSION } from "@/lib/version";
 import { ProfileForm } from "./profile-form";
 
 export default async function ProfilePage() {
@@ -13,7 +15,8 @@ export default async function ProfilePage() {
   const { authMode } = getConfig();
 
   return (
-    <main className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
+    <main className="flex-1">
       <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
         <Link
           href="/orgs"
@@ -44,5 +47,7 @@ export default async function ProfilePage() {
         )}
       </div>
     </main>
+    <SiteFooter version={APP_VERSION} />
+    </div>
   );
 }

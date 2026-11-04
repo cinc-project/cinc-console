@@ -1,9 +1,7 @@
 import { Suspense } from "react";
 import Image from "next/image";
+import { SiteFooter } from "@/components/site-footer";
 import { LoginForm } from "./login-form";
-
-const LICENSE_URL =
-  "https://github.com/cinc-project/cinc-console/blob/main/LICENSE";
 
 export default function LoginPage() {
   return (
@@ -29,21 +27,7 @@ export default function LoginPage() {
           </Suspense>
         </div>
       </main>
-      <footer className="border-t border-border px-6 py-6 text-center text-xs text-muted">
-        <p>
-          © 2026 Tim Smith. Licensed under the{" "}
-          <a href={LICENSE_URL} className="text-link underline underline-offset-2 hover:text-text">
-            Business Source License 1.1
-          </a>
-          .
-        </p>
-        <p className="mt-1">
-          Cinc Is Not Chef ·{" "}
-          <a href="https://cinc.sh/" className="text-link underline underline-offset-2 hover:text-text">
-            cinc.sh
-          </a>
-        </p>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

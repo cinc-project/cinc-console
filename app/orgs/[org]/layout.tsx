@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { currentSession } from "@/lib/guard";
 import { listUserOrgs } from "@/lib/cinc/orgs";
 import { AppShell } from "@/components/app-shell";
+import { APP_VERSION } from "@/lib/version";
 
 export default async function OrgLayout({
   children,
@@ -23,7 +24,9 @@ export default async function OrgLayout({
   }
 
   return (
-    <AppShell org={org} orgs={orgs ?? [{ name: org }]} displayName={displayName}>
+    <AppShell org={org} orgs={orgs ?? [{ name: org }]} displayName={displayName}
+      version={APP_VERSION}
+    >
       {children}
     </AppShell>
   );
