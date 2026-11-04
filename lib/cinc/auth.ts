@@ -39,6 +39,7 @@ export async function authenticateUser(
   try {
     const res = await cincRequest<{ user?: AuthUser }>({
       user: signingUser,
+      onBehalfOf: username,
       method: "POST",
       path: cincPath`/authenticate_user`,
       body: { username, password },

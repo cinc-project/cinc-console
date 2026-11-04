@@ -137,7 +137,9 @@ helm install cinc-console ./deploy/helm/cinc-console \
 Enable verbose logging to see the auth flow:
 
 1. Check pod logs for `cinc.auth_request` messages
-2. Look for `cinc.request_failed` with status 403
+2. Look for `cinc.request_failed` with status 403. Its `actor` is who signed
+   the request and `user` is who it was for; on a login they differ
+   (`actor` is `CINC_AUTH_ACTOR`, `user` is the person logging in)
 3. See if `cinc.auth_fallback` is triggered
 4. Verify `login.success` or `login.failed`
 

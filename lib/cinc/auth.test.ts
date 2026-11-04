@@ -82,6 +82,7 @@ test("signs as authActor when configured", async () => {
   expect(req).toHaveBeenCalledWith(
     expect.objectContaining({
       user: "pivotal",
+      onBehalfOf: "alice",
       path: cincPath`/authenticate_user`,
       body: { username: "alice", password: "pw" },
     }),
