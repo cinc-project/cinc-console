@@ -40,17 +40,6 @@ services:
       - /tmp:size=64m,mode=1777
       - /app/.next/cache:size=128m,mode=1777
 
-    # SESSION_SECRET has no *_FILE variant, so it is read from the Compose
-    # secret at startup. This keeps it out of `docker inspect` and out of
-    # this file.
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        SESSION_SECRET="$$(cat /run/secrets/session_secret)" || exit 1
-        export SESSION_SECRET
-        exec node server.js
-
     env_file:
       - ./cinc-console.env
     environment:
@@ -59,6 +48,9 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       CINC_WEBUI_KEY_FILE: /run/secrets/webui_key
+      # Read from the Compose secret, so the value stays out of
+      # `docker inspect` and out of this file.
+      SESSION_SECRET_FILE: /run/secrets/session_secret
       # Cinc server with a self-signed or private-CA certificate:
       # CINC_CA_CERT_FILE: /etc/cinc-console/cinc-ca.pem
       # AUTH_MODE=ldap with a service account:

@@ -43,6 +43,8 @@ sudo chmod 400 secrets/*
 ```
 
 The Helm chart generates `SESSION_SECRET` for you; here you create it once.
+The console reads it through `SESSION_SECRET_FILE`, which strips one trailing
+newline, so `echo secret > secrets/session_secret` works too.
 `secrets/`, `certs/` and `cinc-console.env` are gitignored.
 
 The webui key lets the console act as any user on the Cinc server, so keep the
@@ -114,5 +116,6 @@ proxy_set_header X-Forwarded-Proto $scheme;
   consecutive failures, and the restart policy starts a fresh container.
 - No NetworkPolicy equivalent. To restrict egress to the Cinc server and the
   directory, use firewall rules (for example the `DOCKER-USER` iptables chain).
-- `SESSION_SECRET` has no `_FILE` variant, so the entrypoint reads it from the
-  Compose secret at startup, which keeps it out of `docker inspect`.
+- The session secret is read from the Compose secret through
+  `SESSION_SECRET_FILE` rather than set as `SESSION_SECRET`, which keeps it out
+  of `docker inspect`.
