@@ -101,8 +101,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Read CI's layer cache, but never write one. On the main path this job
+          # runs under tag-release's pull_request (closed) event, where GitHub
+          # grants the Actions cache read-only; buildx treats the refused cache
+          # export as a build failure, after the push but before the attestation
+          # step, leaving a published image with no signed provenance.
           cache-from: type=gha
-          cache-to: type=gha,mode=max
           # BuildKit attestations attached to the image index: a full provenance
           # record (mode=max) and an SPDX SBOM, inspectable with
           # `docker buildx imagetools inspect --format '{{json .SBOM}}' <ref>`.
