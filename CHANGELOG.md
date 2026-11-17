@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.0 - 2026-11-17
+
+### Merged pull requests
+
+- Split the node page into an identity card and tabs (#154)
+
+### Dependency updates
+
+- chore(deps): bump the github-actions group with 4 updates (#149)
+- chore(deps): bump next from 16.4.4 to 16.4.5 (#153)
+
 ## 0.9.0 - 2026-11-04
 
 ### Merged pull requests
