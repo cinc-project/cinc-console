@@ -104,8 +104,11 @@ export type NodeFacts = {
 /** "16303424kB" / "16303424" / 16303424 -> kilobytes; null if unparseable. */
 export function parseKb(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (typeof v !== "string") return null;
-  const m = /^\s*(\d+(?:\.\d+)?)\s*([kmg]?b?)?\s*$/i.exec(v);
+  // Ohai data is client-supplied: cap the length and trim first, so the
+  // pattern below has exactly one way to match (no adjacent \s* to backtrack
+  // between, which was quadratic on long runs of whitespace).
+  if (typeof v !== "string" || v.length > 64) return null;
+  const m = /^(\d+(?:\.\d+)?) ?([kmg]b?|b)?$/i.exec(v.trim());
   if (!m) return null;
   const n = Number(m[1]);
   const unit = (m[2] ?? "").toLowerCase();

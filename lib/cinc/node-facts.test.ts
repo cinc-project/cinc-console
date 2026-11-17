@@ -136,6 +136,16 @@ describe("formatting", () => {
     expect(parseKb("2048")).toBe(2048);
     expect(parseKb("4MB")).toBe(4096);
     expect(parseKb("lots")).toBeNull();
+    expect(parseKb(" 512 MB ")).toBe(512 * 1024);
+    expect(parseKb("1kb")).toBe(1);
+  });
+
+  it("rejects pathological input quickly", () => {
+    const evil = `1${" ".repeat(50_000)}x`;
+    const start = performance.now();
+    expect(parseKb(evil)).toBeNull();
+    expect(parseKb(`1${" ".repeat(40)}x`)).toBeNull();
+    expect(performance.now() - start).toBeLessThan(50);
   });
 
   it("formats kilobytes", () => {
