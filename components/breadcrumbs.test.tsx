@@ -36,6 +36,17 @@ test("maps the section slug to its label and marks the last crumb current", () =
   expect(current?.textContent).toBe("api_key");
 });
 
+test("labels node tab segments and links the node itself", () => {
+  setPath("/orgs/acme/nodes/web01/run-list");
+  render(<Breadcrumbs />);
+  expect(screen.getByRole("link", { name: "web01" })).toHaveAttribute(
+    "href",
+    "/orgs/acme/nodes/web01",
+  );
+  const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
+  expect(nav.querySelector('[aria-current="page"]')?.textContent).toBe("Run list & tags");
+});
+
 test("does not link the structural 'groups' segment under members", () => {
   setPath("/orgs/acme/members/groups/admins");
   render(<Breadcrumbs />);

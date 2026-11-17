@@ -5,18 +5,20 @@ import { CincError } from "@/lib/cinc/errors";
 
 vi.mock("@/lib/session", () => ({ requireUser: async () => "alice" }));
 
-const { update, create, remove } = vi.hoisted(() => ({
+const { get, update, create, remove } = vi.hoisted(() => ({
+  get: vi.fn(),
   update: vi.fn(),
   create: vi.fn(),
   remove: vi.fn(),
 }));
 vi.mock("@/lib/cinc/resource", () => ({
-  makeResource: () => ({ update, create, remove }),
+  makeResource: () => ({ get, update, create, remove }),
 }));
 
-import { saveNode, createNode, deleteNode } from "./actions";
+import { saveNode, createNode, deleteNode, setNodeEnvironment } from "./actions";
 
 beforeEach(() => {
+  get.mockReset();
   update.mockReset();
   create.mockReset();
   remove.mockReset();
@@ -70,4 +72,34 @@ test("a failed mutation does not revalidate", async () => {
   remove.mockRejectedValueOnce(new CincError(403, "denied"));
   await deleteNode("acme", "web01");
   expect(revalidatePath).not.toHaveBeenCalled();
+});
+
+test("setNodeEnvironment changes only chef_environment on the fresh node", async () => {
+  get.mockResolvedValueOnce({ name: "web01", chef_environment: "_default", normal: { a: 1 } });
+  update.mockResolvedValueOnce({});
+  await expect(setNodeEnvironment("acme", "web01", "production")).resolves.toEqual({ ok: true });
+  expect(update).toHaveBeenCalledWith("alice", "acme", "web01", {
+    name: "web01",
+    chef_environment: "production",
+    normal: { a: 1 },
+  });
+});
+
+test.each([["prod.v2"], [""], [42], [{ name: "x" }]])(
+  "setNodeEnvironment rejects %j without calling the server",
+  async (env) => {
+    await expect(setNodeEnvironment("acme", "web01", env)).resolves.toEqual({
+      error: "invalid environment",
+    });
+    expect(get).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  },
+);
+
+test("setNodeEnvironment translates 403 into forbidden", async () => {
+  get.mockResolvedValueOnce({ name: "web01" });
+  update.mockRejectedValueOnce(new CincError(403, "denied"));
+  await expect(setNodeEnvironment("acme", "web01", "production")).resolves.toEqual({
+    error: "forbidden",
+  });
 });
