@@ -6,6 +6,15 @@ import { NAV } from "@/lib/nav";
 
 type Crumb = { label: string; href: string; link: boolean };
 
+// Node detail tabs are child routes (/nodes/<name>/hardware); show their tab
+// label rather than the raw slug.
+const NODE_TAB_LABELS: Record<string, string> = {
+  "run-list": "Run list & tags",
+  hardware: "Hardware",
+  attributes: "Attributes",
+  json: "Raw JSON",
+};
+
 /**
  * Path-derived breadcrumb for org pages, e.g. `acme / Data Bags / secrets /
  * api_key`. The org and section/object segments link to their pages; "groups"
@@ -28,9 +37,10 @@ export function Breadcrumbs() {
   rest.forEach((seg, i) => {
     acc += `/${seg}`;
     const isSection = i === 0;
+    const nodeTab = rest[0] === "nodes" && i === 2 ? NODE_TAB_LABELS[seg] : undefined;
     const label = isSection
       ? (NAV.find((n) => n.slug === seg)?.label ?? decodeURIComponent(seg))
-      : decodeURIComponent(seg);
+      : (nodeTab ?? decodeURIComponent(seg));
     // "groups" sits under /members but has no list page of its own.
     const structural = seg === "groups" && rest[i - 1] === "members";
     crumbs.push({ label, href: acc, link: !structural });

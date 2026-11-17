@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, ORG, alert, login } from "./helpers";
+import { ADMIN, ORG, login } from "./helpers";
 
 // Every step is a webui-signed request impersonating anna, verified and
 // ACL-checked by the real server: create (POST), edit (PUT), delete (DELETE).
@@ -16,8 +16,15 @@ test("an admin creates, edits, and deletes a node", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}/nodes/${name}$`));
   await expect(page.getByRole("heading", { name })).toBeVisible();
 
-  // Edit: change the node's normal attributes through the JSON editor.
-  await page.getByRole("button", { name: "Edit JSON" }).click();
+  // The tabs are routes; the overview lands first.
+  await expect(
+    page.getByRole("link", { name: "Overview" }),
+  ).toHaveAttribute("aria-current", "page");
+
+  // Edit: change the node's normal attributes on the Raw JSON tab.
+  await page.getByRole("link", { name: "Raw JSON" }).click();
+  await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}/nodes/${name}/json$`));
+  await page.getByRole("button", { name: "Edit" }).click();
   const editor = page.getByRole("textbox", { name: "JSON editor" });
   const current = JSON.parse(await editor.inputValue());
   current.normal = { e2e: { marker: "edited" } };
@@ -26,13 +33,12 @@ test("an admin creates, edits, and deletes a node", async ({ page }) => {
   const confirm = page.getByRole("dialog", { name: "Apply changes?" });
   await expect(confirm).toBeVisible();
   await confirm.getByRole("button", { name: "Apply" }).click();
-  await expect(alert(page, "Saved.")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
 
   // The edit round-tripped through the server, not just local state.
   await page.reload();
-  await page.getByRole("button", { name: "Edit JSON" }).click();
   const saved = JSON.parse(
-    await page.getByRole("textbox", { name: "JSON editor" }).inputValue(),
+    await page.getByRole("textbox", { name: "JSON (read-only)" }).inputValue(),
   );
   expect(saved.normal).toEqual({ e2e: { marker: "edited" } });
 
