@@ -12,16 +12,16 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-CINC_SERVER_NG_VERSION="v0.17.0"
+CINC_SERVER_NG_VERSION="v0.20.2"
 CINC_PORT="${E2E_CINC_PORT:-8899}"
 
 # SHA256SUMS from the cinc-project/cinc-server-ng $CINC_SERVER_NG_VERSION release.
 sha_for() {
   case "$1" in
-    darwin_amd64) echo d8ee70cbfffd4c8d37140664e9e7e8c4e6ec8d6f9cd89e86ad0e6377c486b8dd ;;
-    darwin_arm64) echo 929c1bbd26df6707c3166dce843749db4472d284121ebf35f51200e3c02002c3 ;;
-    linux_amd64) echo 030238955d69de260523d85f3c774023c3b0c034d7ab10aca9d9c7a613267ba6 ;;
-    linux_arm64) echo 8fa0375aa4611fd6257dfcc6a03fa24a0cda64682e606c6533f0074381269737 ;;
+    darwin_amd64) echo 2160387fa20cb14edd9cecd13bca906e41237574ae93b6e9ebd0d50e92d9a43e ;;
+    darwin_arm64) echo ed417771f3bb99ca4505549dde150b614e1ea83306f63a2405e61ab460bf98d2 ;;
+    linux_amd64) echo e0132f06250a872b6896a13b9e6d2934b86ce99e0c6f6e33da8556f37aeba9dd ;;
+    linux_arm64) echo aac26ee7a322ef76c90b146a2d67ef036df31da69c2e109130bd85f6b7c09e8b ;;
     *) echo "unsupported platform: $1" >&2; return 1 ;;
   esac
 }
