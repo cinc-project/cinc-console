@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.10.1 - 2026-11-20
+
+### Dependency updates
+
+- chore(deps): bump dependencies within current majors (#158)
+- chore(deps): bump dependencies within current majors (#157)
+- chore(deps-dev): bump jsdom from 30.1.3 to 31.0.1 (#152)
+- chore(deps): bump the production-dependencies group across 1 directory with 2 updates (#150)
+
 ## 0.10.0 - 2026-11-17
 
 ### Merged pull requests
