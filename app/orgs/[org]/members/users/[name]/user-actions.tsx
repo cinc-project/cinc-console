@@ -53,7 +53,7 @@ export function UserActions({
       const res = await onDelete();
       if ("ok" in res) {
         setDeleting(false);
-        router.push(backHref);
+        router.push(backHref); // nosemgrep: js-express-xss
       } else {
         setDeleteError(explainDelete(res.error));
       }

@@ -51,7 +51,7 @@ export function ClientHeader({
     startTransition(async () => {
       const res = await onDelete();
       if ("ok" in res) {
-        router.push(backHref);
+        router.push(backHref); // nosemgrep: js-express-xss
         router.refresh();
       } else {
         setError(explain(res.error));

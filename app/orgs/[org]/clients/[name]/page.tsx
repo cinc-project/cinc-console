@@ -32,6 +32,7 @@ export default async function ClientDetail({
 
   return (
     <div className="max-w-3xl space-y-5">
+      {/* nosemgrep: js-open-redirect -- same-origin path */}
       <Link href={backHref} className="text-sm text-muted hover:text-text">
         ← back
       </Link>

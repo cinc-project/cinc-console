@@ -67,6 +67,7 @@ export default async function UserDetail({
 
   return (
     <div className="max-w-3xl space-y-5">
+      {/* nosemgrep: js-open-redirect -- same-origin path */}
       <Link href={base} className="text-sm text-muted hover:text-text">
         ← back
       </Link>
@@ -83,6 +84,7 @@ export default async function UserDetail({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* nosemgrep: js-open-redirect -- same-origin path */}
           <Link href={permissionsHref(org, { kind: "users", name })} className={buttonClass("secondary")}>
             Permissions
           </Link>
