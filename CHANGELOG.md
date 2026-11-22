@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.11.0 - 2026-11-22
+
+### Merged pull requests
+
+- Add platform icons for 15 more distros (#161)
+- Show branded platform names instead of raw Ohai values (#160)
+
 ## 0.10.1 - 2026-11-20
 
 ### Dependency updates
