@@ -7,7 +7,11 @@ describe("glyphFor", () => {
     ["Ubuntu", "ubuntu"],
     ["ubuntu", "ubuntu"],
     ["debian", "debian"],
-    ["raspbian", "debian"],
+    ["raspbian", "raspberrypi"],
+    ["devuan", "devuan"],
+    ["linuxmint", "linuxmint"],
+    ["kali", "kali"],
+    ["zorin", "zorin"],
     ["Red Hat Enterprise Linux", "redhat"],
     ["rhel", "redhat"],
     ["centos", "centos"],
@@ -19,12 +23,25 @@ describe("glyphFor", () => {
     ["amazon", "amazon"],
     ["Amazon Linux", "amazon"],
     ["amzn", "amazon"],
-    ["fedora", "redhat"],
+    ["fedora", "fedora"],
+    ["oracle", "oracle"],
+    ["opensuseleap", "opensuse"],
+    ["opensuse-tumbleweed", "opensuse"],
+    ["gentoo", "gentoo"],
+    ["nixos", "nixos"],
+    ["void", "void"],
+    ["flatcar", "flatcar"],
     ["windows", "windows"],
     ["mac_os_x", "apple"],
     ["darwin", "apple"],
     ["alpine", "alpine"],
     ["arch", "arch"],
+    ["manjaro", "manjaro"],
+    ["endeavouros", "endeavouros"],
+    ["nexus", "cisco"],
+    ["nexus_centos", "cisco"],
+    ["ios_xr", "cisco"],
+    ["scientific", "generic"],
     ["plan9", "generic"],
     ["suse", "generic"],
   ])("maps %s to the %s glyph", (platform, expected) => {
@@ -50,5 +67,19 @@ describe("PlatformIcon", () => {
 
     const { container: b } = render(<PlatformIcon platform={undefined} />);
     expect(glyphOf(b)).toBe("generic");
+  });
+
+  it("gives each knocked-out glyph its own mask so icons on one page don't share one", () => {
+    const { container } = render(
+      <>
+        <PlatformIcon platform="fedora" />
+        <PlatformIcon platform="fedora" />
+      </>,
+    );
+    const masks = [...container.querySelectorAll("mask")];
+    expect(masks).toHaveLength(2);
+    expect(masks[0].id).not.toBe(masks[1].id);
+    const groups = [...container.querySelectorAll("g[mask]")];
+    expect(groups.map((g) => g.getAttribute("mask"))).toEqual(masks.map((m) => `url(#${m.id})`));
   });
 });
