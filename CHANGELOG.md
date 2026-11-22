@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.13.0 - 2026-11-22
+
+### Merged pull requests
+
+- Compact user, profile and client pages (#169)
+
 ## 0.12.0 - 2026-11-22
 
 ### Merged pull requests
