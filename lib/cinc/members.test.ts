@@ -129,3 +129,25 @@ describe("missingMembers", () => {
     expect(missingMembers({ groups: ["g"] }, { groups: ["g"] })).toEqual([]);
   });
 });
+
+test("listInvites hits GET /association_requests within the org", async () => {
+  req.mockResolvedValueOnce([]);
+  await members.listInvites("alice", "acme");
+  expect(req).toHaveBeenCalledWith({
+    user: "alice",
+    org: "acme",
+    method: "GET",
+    path: cincPath`/association_requests`,
+  });
+});
+
+test("cancelInvite DELETEs /association_requests/<id>", async () => {
+  req.mockResolvedValueOnce({});
+  await members.cancelInvite("alice", "acme", "bob-acme");
+  expect(req).toHaveBeenCalledWith({
+    user: "alice",
+    org: "acme",
+    method: "DELETE",
+    path: cincPath`/association_requests/bob-acme`,
+  });
+});

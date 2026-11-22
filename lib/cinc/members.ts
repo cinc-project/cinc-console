@@ -21,6 +21,11 @@ function strings(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
 }
 
+/** One member list (users, clients or groups) of a group document. */
+export function memberList(doc: Record<string, unknown> | null | undefined, kind: MemberKind): string[] {
+  return strings(doc?.[kind]);
+}
+
 /**
  * Build a group update from an edited group document.
  *
@@ -74,6 +79,22 @@ export const members = {
       method: "POST",
       path: cincPath`/association_requests`,
       body: { user: username },
+    }),
+  /** Pending invitations to this org: `[{ id, username }]`. */
+  listInvites: (user: string, org: string) =>
+    cincRequest<Array<{ id: string; username: string }>>({
+      user,
+      org,
+      method: "GET",
+      path: cincPath`/association_requests`,
+    }),
+  /** Withdraw a pending invitation. The id is `<user>-<org>`. */
+  cancelInvite: (user: string, org: string, id: string) =>
+    cincRequest<unknown>({
+      user,
+      org,
+      method: "DELETE",
+      path: cincPath`/association_requests/${id}`,
     }),
   removeUser: (user: string, org: string, username: string) =>
     cincRequest<unknown>({
