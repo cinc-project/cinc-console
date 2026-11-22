@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,15 @@ function Field({
   type?: string;
   autoComplete?: string;
 }) {
+  // The label must point at its input, or screen readers announce it unnamed.
+  const id = useId();
   return (
     <div className="space-y-1">
-      <label className="text-sm text-muted">{label}</label>
+      <label htmlFor={id} className="text-sm text-muted">
+        {label}
+      </label>
       <Input
+        id={id}
         type={type}
         value={value}
         autoComplete={autoComplete}

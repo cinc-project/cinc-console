@@ -47,3 +47,8 @@ test("rejects the reserved _default environment", () => {
   // _default is fine as a role or data bag name
   expect(nameError("role", "_default")).toBeNull();
 });
+
+test("key names allow colons and dots, like the server", () => {
+  expect(nameError("key", "laptop:2026.11")).toBeNull();
+  expect(nameError("key", "my key")).toBe("Use only letters, numbers, and . : _ -.");
+});

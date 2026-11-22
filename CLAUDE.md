@@ -91,7 +91,8 @@ permission" (it never substitutes its own check).
   `.bind(null, org, name)` and passed to `ObjectEditor`/`NewObjectForm`.
 - **Mutations return `{ ok: true } | { error: string }`** via `runAction`.
 - v1 scope: nodes/roles/environments/data bags/members & groups = CRUD;
-  clients = create + delete (no edit); cookbooks/policies = view + delete
+  clients = create + delete + key management (no edit of the client
+  object itself); user keys on /profile; cookbooks/policies = view + delete
   (a version/revision or the whole object). Editing cookbook/policy content
   and cookbook uploads are out of scope. `_default` environment is read-only.
 

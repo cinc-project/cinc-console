@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { nameError } from "@/lib/cinc/names";
+import { OneTimeKey } from "@/components/one-time-key";
 import type { CreateClientResult } from "../actions";
 
 function explain(error: string): string {
@@ -27,7 +28,6 @@ export function NewClientForm({
   const [created, setCreated] = useState<{ name: string; privateKey: string } | null>(
     null,
   );
-  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const nameErr = nameError("client", name);
@@ -44,30 +44,6 @@ export function NewClientForm({
     });
   }
 
-  async function copyKey() {
-    if (!created) return;
-    try {
-      await navigator.clipboard.writeText(created.privateKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("Couldn't copy — select the key and copy manually.");
-    }
-  }
-
-  function downloadKey() {
-    if (!created) return;
-    const blob = new Blob([created.privateKey], {
-      type: "application/x-pem-file",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${created.name}.pem`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   if (created) {
     return (
       <div className="max-w-2xl space-y-4">
@@ -75,39 +51,17 @@ export function NewClientForm({
           Client <span className="font-mono">{created.name}</span> created
         </h1>
 
-        <div
-          role="alert"
-          className="rounded-md border border-warn/50 bg-warn/10 p-3 text-sm text-text"
-        >
-          <strong>Save this private key now.</strong> It is shown only once and
-          cannot be retrieved later. Store it where the client (e.g.
-          chef-client) can read it.
-        </div>
-
-        <textarea
-          readOnly
-          rows={14}
-          value={created.privateKey}
-          aria-label={`Private key for ${created.name}`}
-          spellCheck={false}
-          className="w-full rounded-md border border-border bg-bg p-3 font-mono text-xs text-text"
+        <OneTimeKey
+          filename={created.name}
+          privateKey={created.privateKey}
+          label={`Private key for ${created.name}`}
+          hint="Store it where the client (e.g. chef-client) can read it."
+          actions={
+            <Link href={`/orgs/${org}/clients`}>
+              <Button variant="ghost">Done</Button>
+            </Link>
+          }
         />
-
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={copyKey}>{copied ? "Copied ✓" : "Copy key"}</Button>
-          <Button variant="secondary" onClick={downloadKey}>
-            Download .pem
-          </Button>
-          <Link href={`/orgs/${org}/clients`}>
-            <Button variant="ghost">Done</Button>
-          </Link>
-        </div>
-
-        {error && (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        )}
       </div>
     );
   }
