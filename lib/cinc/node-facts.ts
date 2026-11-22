@@ -5,6 +5,7 @@
 // empty when Ohai didn't report it (a node that never converged has no
 // `automatic` at all; Windows and macOS report a different shape than Linux).
 
+import { platformLabel } from "@/lib/platform-name";
 import {
   hasEmptyRunList,
   isDefaultEnvironment,
@@ -308,17 +309,7 @@ export function machineKind(facts: NodeFacts): string | null {
 
 /** "Debian 13" style display name for the OS; null if Ohai never reported one. */
 export function osName(facts: NodeFacts): string | null {
-  if (!facts.platform) return null;
-  const pretty: Record<string, string> = {
-    debian: "Debian", ubuntu: "Ubuntu", redhat: "Red Hat Enterprise Linux",
-    centos: "CentOS", rocky: "Rocky Linux", almalinux: "AlmaLinux",
-    amazon: "Amazon Linux", fedora: "Fedora", oracle: "Oracle Linux",
-    suse: "SUSE Linux Enterprise", opensuseleap: "openSUSE Leap",
-    alpine: "Alpine Linux", arch: "Arch Linux", mac_os_x: "macOS",
-    windows: "Windows", freebsd: "FreeBSD", raspbian: "Raspberry Pi OS",
-  };
-  const name = pretty[facts.platform] ?? facts.platform;
-  return facts.platformVersion ? `${name} ${facts.platformVersion}` : name;
+  return platformLabel(facts.platform, facts.platformVersion);
 }
 
 export type CheckIn = "recent" | "ok" | "missing" | "never";

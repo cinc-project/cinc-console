@@ -120,7 +120,7 @@ describe("FleetDashboard", () => {
     expect(card).toHaveTextContent("3d ago");
     expect(within(card).getByText("Missing")).toBeInTheDocument();
     expect(within(card).getByText("EOL client")).toBeInTheDocument();
-    expect(card).toHaveTextContent("production · ubuntu 24.04 · 17.10.0");
+    expect(card).toHaveTextContent("production · Ubuntu 24.04 · 17.10.0");
   });
 
   it("offers a Sort by picker for the phone layout", () => {

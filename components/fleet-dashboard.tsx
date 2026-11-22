@@ -21,6 +21,7 @@ import {
 } from "@/lib/cinc/fleet";
 import { relativeAgo } from "@/lib/time";
 import { PlatformIcon } from "@/components/platform/platform-icon";
+import { platformLabel } from "@/lib/platform-name";
 import { CheckInHistogram } from "@/components/fleet-histogram";
 import { TILE_GRID } from "@/components/fleet-skeleton";
 import { SortSelect, type SortOption } from "@/components/ui/sort-select";
@@ -662,8 +663,7 @@ function StatusChips({ node }: { node: NodeSummary }) {
 }
 
 function platformText(n: NodeSummary): string | null {
-  if (n.platform === null) return null;
-  return n.platformVersion ? `${n.platform} ${n.platformVersion}` : n.platform;
+  return platformLabel(n.platform, n.platformVersion);
 }
 
 // --- helpers -------------------------------------------------------------

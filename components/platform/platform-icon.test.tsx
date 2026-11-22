@@ -37,10 +37,10 @@ describe("PlatformIcon", () => {
     return node.querySelector("svg")?.getAttribute("data-platform-glyph");
   }
 
-  it("renders the matching glyph and labels it with the platform", () => {
-    const { container } = render(<PlatformIcon platform="Ubuntu" />);
-    expect(glyphOf(container)).toBe("ubuntu");
-    expect(container.querySelector("svg")).toHaveAttribute("aria-label", "Ubuntu");
+  it("renders the matching glyph and labels it with the branded name", () => {
+    const { container } = render(<PlatformIcon platform="mac_os_x" />);
+    expect(glyphOf(container)).toBe("apple");
+    expect(container.querySelector("svg")).toHaveAttribute("aria-label", "macOS");
   });
 
   it("falls back to the generic glyph for empty or non-string input", () => {
