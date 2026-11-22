@@ -117,17 +117,31 @@ openssl genrsa -traditional -out webui_priv.pem 2048
 openssl rsa -in webui_priv.pem -pubout -out webui_pub.pem
 
 # Server: trust the public key for X-Ops-Request-Source: web
-cinc-server-ng --storage sqlite --db /data/cinc.db --webui-key webui_pub.pem
+cinc-server-ng --storage sqlite --db /data/cinc.db \
+  --orgs myorg \
+  --webui-key webui_pub.pem \
+  --key-out pivotal.pem
 ```
+
+- `--orgs` names the organizations to create. Without it you get one org
+  called `acme`.
+- `--key-out` writes the bootstrap superuser's (`pivotal`) private key. The
+  server never returns that key over the API, and you need it for the steps
+  below. On SQLite the key is persisted, so adding `--key-out` to a later
+  start writes the same key again.
 
 Give the console `webui_priv.pem` (`CINC_WEBUI_KEY_FILE`, the Helm chart's
 `webuiKey`, or `secrets/webui_priv.pem` for Compose) and keep `webui_pub.pem`
 with the server.
 
+### The first console admin
+
 A fresh cinc-server-ng has only `pivotal`, which has a key but no password, so
-nobody can log in to the console yet. Create a user with a password and make it
-an org admin, signed as `pivotal` with the [`cinc`](https://github.com/cinc-project/cinc-cli)
-CLI:
+nobody can log in to the console yet. Sign as `pivotal` with the
+[`cinc`](https://github.com/cinc-project/cinc-cli) CLI (a profile with
+`client_name = "pivotal"`, `client_key` pointing at `pivotal.pem`, and
+`cinc_server_url = "https://<server>/organizations/myorg"`), then create a user
+with a password and make it an org admin:
 
 ```bash
 cinc user create alice --email alice@example.com --password '...'
@@ -135,8 +149,42 @@ cinc org member add alice
 cinc group member add admins alice
 ```
 
-Keep `CINC_AUTH_ACTOR=pivotal` (the Compose and Helm default) so the console's
-password checks are signed by a superuser.
+To let alice create users from the console (**Members → New user**), also make
+her a server admin. Creating users needs that or the superuser; being an org
+admin is not enough, and the form answers `forbidden`. cinc-server-ng's
+equivalent of `chef-server-ctl grant-server-admin-permissions` is a superuser-only
+route, called here with `knife raw` signed as `pivotal`:
+
+```bash
+knife raw -m PUT /_cinc/server_admins/alice
+```
+
+`CINC_AUTH_ACTOR` is optional here. The console checks passwords with
+`POST /authenticate_user`, which cinc-server-ng answers for the superuser or
+for any request signed with the webui key, so the user logging in can sign it.
+The Compose and Helm default of `pivotal` works too.
+
+### What still needs the CLI
+
+The console signs every request as the logged-in user, and nobody logs in as
+`pivotal`, so anything that only the superuser may do stays on the command
+line:
+
+- creating organizations (`cinc org create`)
+- adding a user to an org directly (the console invites instead; the user
+  accepts on the **Organizations** page)
+- granting or revoking server admin (`/_cinc/server_admins`)
+
+Uploading cookbooks and pushing Policyfiles are workstation tasks too
+(`cinc cookbook upload`, `cinc policy push`); the console views and deletes
+them.
+
+### Bootstrapping nodes
+
+Each org has a `<org>-validator` client, but cinc-server-ng never hands out its
+private key. To get one, open **Clients → `<org>-validator`** in the console and
+regenerate its `default` key; the new private key is shown once. Alternatively,
+bootstrap without a validator, signing with your own user key.
 
 For a local dev loop against cinc-server-ng, see
 [TROUBLESHOOTING.md](TROUBLESHOOTING.md#testing-against-cinc-server-ng).
