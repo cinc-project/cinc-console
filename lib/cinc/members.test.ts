@@ -1,10 +1,10 @@
 // @vitest-environment node
-import { expect, test, vi, beforeEach } from "vitest";
+import { describe, expect, test, vi, beforeEach } from "vitest";
 
 const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
-import { members } from "./members";
+import { members, groupUpdateBody, missingMembers } from "./members";
 import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
@@ -63,5 +63,69 @@ test("updateGroup PUTs the body to /groups/<name>", async () => {
     method: "PUT",
     path: cincPath`/groups/admins`,
     body: { users: ["bob"] },
+  });
+});
+
+describe("groupUpdateBody", () => {
+  test("turns the GET shape's top-level lists into Chef's nested actors", () => {
+    // A GET returns actors as a flat array plus top-level lists; erchef reads
+    // only the nested object on PUT, so the top-level lists must move into it.
+    const body = groupUpdateBody("admins", {
+      actors: ["web01", "bob"],
+      users: ["bob"],
+      clients: ["web01"],
+      groups: [],
+      orgname: "acme",
+      name: "admins",
+      groupname: "admins",
+    });
+    expect(body).toEqual({
+      groupname: "admins",
+      actors: { users: ["bob"], clients: ["web01"], groups: [] },
+    });
+  });
+
+  test("passes an already-nested actors object through", () => {
+    expect(
+      groupUpdateBody("ops", { actors: { users: ["a"], clients: ["c"], groups: ["g"] } }),
+    ).toEqual({
+      groupname: "ops",
+      actors: { users: ["a"], clients: ["c"], groups: ["g"] },
+    });
+  });
+
+  test("omits a kind the body doesn't give, so the server keeps its members", () => {
+    expect(groupUpdateBody("ops", { clients: ["c"] })).toEqual({
+      groupname: "ops",
+      actors: { clients: ["c"] },
+    });
+  });
+
+  test("names the group from the path, never the body", () => {
+    expect(groupUpdateBody("ops", { groupname: "admins", users: [] })).toEqual({
+      groupname: "ops",
+      actors: { users: [] },
+    });
+  });
+
+  test("drops non-string entries and fields it doesn't know", () => {
+    expect(
+      groupUpdateBody("ops", { users: ["a", 5, null, "b"], acl: { x: 1 } }),
+    ).toEqual({ groupname: "ops", actors: { users: ["a", "b"] } });
+  });
+});
+
+describe("missingMembers", () => {
+  test("lists requested names the saved group doesn't contain", () => {
+    expect(
+      missingMembers(
+        { users: ["bob", "typo"], clients: ["web01"] },
+        { users: ["bob"], clients: ["web01"], groups: [] },
+      ),
+    ).toEqual(["typo"]);
+  });
+
+  test("is empty when everything was saved", () => {
+    expect(missingMembers({ groups: ["g"] }, { groups: ["g"] })).toEqual([]);
   });
 });

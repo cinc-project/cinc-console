@@ -4,18 +4,23 @@ import { CincError } from "@/lib/cinc/errors";
 
 vi.mock("@/lib/session", () => ({ requireUser: async () => "alice" }));
 
-const { invite, removeUser: removeUserFn, updateGroup, deleteGroupFn } =
+const { invite, removeUser: removeUserFn, updateGroup, getGroup, deleteGroupFn } =
   vi.hoisted(() => ({
     invite: vi.fn(),
     removeUser: vi.fn(),
     updateGroup: vi.fn(),
+    getGroup: vi.fn(),
     deleteGroupFn: vi.fn(),
   }));
-vi.mock("@/lib/cinc/members", () => ({
+// Keep the pure helpers (groupUpdateBody, missingMembers) real; mock only the
+// server calls.
+vi.mock("@/lib/cinc/members", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/cinc/members")>()),
   members: {
     invite,
     removeUser: removeUserFn,
     updateGroup,
+    getGroup,
     deleteGroup: deleteGroupFn,
   },
 }));
@@ -26,6 +31,7 @@ beforeEach(() => {
   invite.mockReset();
   removeUserFn.mockReset();
   updateGroup.mockReset();
+  getGroup.mockReset();
   deleteGroupFn.mockReset();
 });
 
@@ -49,13 +55,31 @@ test("saveGroup rejects invalid JSON without calling the server", async () => {
   expect(updateGroup).not.toHaveBeenCalled();
 });
 
-test("saveGroup saves the parsed object", async () => {
+test("saveGroup sends members nested under actors, as erchef reads them", async () => {
   updateGroup.mockResolvedValueOnce({});
+  getGroup.mockResolvedValueOnce({ users: ["bob"], clients: [], groups: [] });
   await expect(
-    saveGroup("acme", "admins", '{"users":["bob"]}'),
+    saveGroup(
+      "acme",
+      "admins",
+      '{"actors":["bob"],"users":["bob"],"clients":[],"groups":[],"orgname":"acme"}',
+    ),
   ).resolves.toEqual({ ok: true });
   expect(updateGroup).toHaveBeenCalledWith("alice", "acme", "admins", {
-    users: ["bob"],
+    groupname: "admins",
+    actors: { users: ["bob"], clients: [], groups: [] },
+  });
+});
+
+test("saveGroup reports names the server silently dropped", async () => {
+  // erchef drops members it can't resolve and still answers 200.
+  updateGroup.mockResolvedValueOnce({});
+  getGroup.mockResolvedValueOnce({ users: ["bob"], clients: [], groups: [] });
+  await expect(
+    saveGroup("acme", "users", '{"users":["bob"],"clients":["managment-agent"]}'),
+  ).resolves.toEqual({
+    error:
+      "Saved, but the server didn't add managment-agent. Check that a user, client, or group by that name exists.",
   });
 });
 
