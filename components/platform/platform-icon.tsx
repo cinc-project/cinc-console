@@ -1,4 +1,5 @@
 import type { ReactElement, SVGProps } from "react";
+import { platformName } from "@/lib/platform-name";
 
 /**
  * Inline monochrome platform glyphs. They use `currentColor` so they inherit
@@ -146,6 +147,6 @@ export function PlatformIcon({
 }) {
   const valid = typeof platform === "string" && platform.trim() !== "";
   const glyph = valid ? glyphFor(platform) : "generic";
-  const label = valid ? platform : "unknown platform";
+  const label = valid ? platformName(platform) : "unknown platform";
   return <Glyph glyph={glyph} label={label} className={className} />;
 }
