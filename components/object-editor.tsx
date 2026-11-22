@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { JsonEditor } from "./json-editor";
-import { Button } from "./ui/button";
+import { Button, buttonClass } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { PromptDialog } from "./ui/prompt-dialog";
 import { JsonDiffView } from "./json-diff-view";
@@ -15,6 +15,8 @@ import type { NameKind } from "@/lib/cinc/names";
 function explain(error: string): string {
   if (error === "forbidden")
     return "You don't have permission to do that in this organization.";
+  if (error === "built-in group")
+    return "Every organization needs this group, so it can't be deleted.";
   return error;
 }
 
@@ -33,6 +35,7 @@ export function ObjectEditor({
   onDuplicate,
   nameKind,
   backHref,
+  permissionsHref,
   readOnly = false,
 }: {
   name: string;
@@ -56,6 +59,8 @@ export function ObjectEditor({
   /** Validates the new name in the Duplicate dialog against Chef's rules. */
   nameKind?: NameKind;
   backHref: string;
+  /** Link to this object's permissions page, shown in the header. */
+  permissionsHref?: string;
   readOnly?: boolean;
 }) {
   const router = useRouter();
@@ -155,7 +160,12 @@ export function ObjectEditor({
             <h1 className="font-mono text-2xl font-semibold tracking-tight">{name}</h1>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {permissionsHref && (
+            <Link href={permissionsHref} className={buttonClass("secondary")}>
+              Permissions
+            </Link>
+          )}
           {details && (
             <Button
               variant="secondary"

@@ -11,6 +11,7 @@ const {
   updateGroup,
   getGroup,
   deleteGroupFn,
+  createGroupFn,
 } = vi.hoisted(() => ({
     invite: vi.fn(),
     cancelInvite: vi.fn(),
@@ -18,6 +19,7 @@ const {
     updateGroup: vi.fn(),
     getGroup: vi.fn(),
     deleteGroupFn: vi.fn(),
+    createGroupFn: vi.fn(),
   }));
 // Keep the pure helpers (groupUpdateBody, missingMembers) real; mock only the
 // server calls.
@@ -30,6 +32,7 @@ vi.mock("@/lib/cinc/members", async (importOriginal) => ({
     updateGroup,
     getGroup,
     deleteGroup: deleteGroupFn,
+    createGroup: createGroupFn,
   },
 }));
 
@@ -39,6 +42,7 @@ import {
   removeUser,
   saveGroup,
   deleteGroup,
+  createGroup,
 } from "./actions";
 
 beforeEach(() => {
@@ -48,6 +52,7 @@ beforeEach(() => {
   updateGroup.mockReset();
   getGroup.mockReset();
   deleteGroupFn.mockReset();
+  createGroupFn.mockReset();
 });
 
 test("inviteUser invites by username", async () => {
@@ -100,13 +105,13 @@ test("saveGroup reports names the server silently dropped", async () => {
 
 test("deleteGroup removes the group by name", async () => {
   deleteGroupFn.mockResolvedValueOnce({});
-  await expect(deleteGroup("acme", "admins")).resolves.toEqual({ ok: true });
-  expect(deleteGroupFn).toHaveBeenCalledWith("alice", "acme", "admins");
+  await expect(deleteGroup("acme", "ops")).resolves.toEqual({ ok: true });
+  expect(deleteGroupFn).toHaveBeenCalledWith("alice", "acme", "ops");
 });
 
 test("deleteGroup translates 403 into a forbidden result", async () => {
   deleteGroupFn.mockRejectedValueOnce(new CincError(403, "denied"));
-  await expect(deleteGroup("acme", "admins")).resolves.toEqual({
+  await expect(deleteGroup("acme", "ops")).resolves.toEqual({
     error: "forbidden",
   });
 });
@@ -164,4 +169,24 @@ describe("removeUser", () => {
     );
     await expect(removeUser("acme", "bob")).resolves.toEqual({ error: "nested admin" });
   });
+});
+
+describe("createGroup", () => {
+  test("creates an empty group named by groupname", async () => {
+    createGroupFn.mockResolvedValueOnce({});
+    await expect(createGroup("acme", "ops")).resolves.toEqual({ ok: true });
+    expect(createGroupFn).toHaveBeenCalledWith("alice", "acme", "ops");
+  });
+
+  test("rejects names the server would", async () => {
+    await expect(createGroup("acme", "Ops Team")).resolves.toEqual({ error: "invalid name" });
+    expect(createGroupFn).not.toHaveBeenCalled();
+  });
+});
+
+test("deleteGroup refuses the built-in groups", async () => {
+  for (const g of ["admins", "users", "clients", "billing-admins", "public_key_read_access"]) {
+    await expect(deleteGroup("acme", g)).resolves.toEqual({ error: "built-in group" });
+  }
+  expect(deleteGroupFn).not.toHaveBeenCalled();
 });

@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import Link from "next/link";
 import { currentUser } from "@/lib/guard";
 import { dataBags } from "@/lib/cinc/databags";
@@ -32,12 +33,17 @@ export default async function DataBagItemsPage({
         >
           ← back
         </Link>
+        <div className="flex gap-2">
+        <Link href={permissionsHref(org, { kind: "data", name: bag })} className={buttonClass("secondary")}>
+          Permissions
+        </Link>
         <DeleteBagButton
           org={org}
           bag={bag}
           itemCount={items.length}
           onDelete={deleteBag.bind(null, org, bag)}
         />
+        </div>
       </div>
       <ResourceTable
         title={bag}

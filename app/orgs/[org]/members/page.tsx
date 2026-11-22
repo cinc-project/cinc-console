@@ -6,7 +6,8 @@ import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { InviteForm } from "./invite-form";
 import { UsersList, GroupsList } from "./sortable-lists";
 import { PendingInvites } from "./pending-invites";
-import { inviteUser, removeUser, cancelInvite } from "./actions";
+import { inviteUser, removeUser, cancelInvite, createGroup } from "./actions";
+import { NewGroupButton } from "./new-group-button";
 
 export default async function MembersPage({
   params,
@@ -73,7 +74,10 @@ export default async function MembersPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">Groups</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-semibold tracking-tight">Groups</h2>
+          <NewGroupButton basePath={base} onCreate={createGroup.bind(null, org)} />
+        </div>
         {"error" in groupsRes ? (
           <p className="text-sm text-danger">{explainRead(groupsRes.error)}</p>
         ) : Object.keys(groupsRes.data).length === 0 ? (

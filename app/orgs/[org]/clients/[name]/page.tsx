@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { clients } from "@/lib/cinc/readonly";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
@@ -31,6 +32,7 @@ export default async function ClientDetail({
       initialJson={JSON.stringify(res.data, null, 2)}
       details={<ClientDetails data={res.data} />}
       backHref={`/orgs/${org}/clients`}
+      permissionsHref={permissionsHref(org, { kind: "clients", name: name })}
       readOnly={true}
       onDelete={deleteClientAction.bind(null, org, name)}
     />

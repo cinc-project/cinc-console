@@ -59,3 +59,17 @@ test("has no axe violations", async () => {
   const { container } = render(<Breadcrumbs />);
   expect(await axe(container)).toHaveNoViolations();
 });
+
+test("does not link the structural 'users' segment under members", () => {
+  setPath("/orgs/acme/members/users/bob");
+  render(<Breadcrumbs />);
+  expect(screen.queryByRole("link", { name: "users" })).not.toBeInTheDocument();
+  expect(screen.getByText("users")).toBeInTheDocument();
+});
+
+test("does not link the kind under permissions, but links the overview", () => {
+  setPath("/orgs/acme/permissions/containers/nodes");
+  render(<Breadcrumbs />);
+  expect(screen.getByRole("link", { name: "Permissions" })).toHaveAttribute("href", "/orgs/acme/permissions");
+  expect(screen.queryByRole("link", { name: "containers" })).not.toBeInTheDocument();
+});

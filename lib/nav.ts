@@ -5,6 +5,7 @@ export const NAV: { label: string; slug: string }[] = [
   { label: "Environments", slug: "environments" },
   { label: "Data Bags", slug: "data_bags" },
   { label: "Members", slug: "members" },
+  { label: "Permissions", slug: "permissions" },
   { label: "Cookbooks", slug: "cookbooks" },
   { label: "Policies", slug: "policies" },
   { label: "Clients", slug: "clients" },
