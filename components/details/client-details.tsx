@@ -9,8 +9,8 @@ import {
 } from "./primitives";
 
 /**
- * Curated read-only view of an API client: its flags and public key. Clients
- * are read-only in the console, so there is nothing to edit here.
+ * Curated read-only view of an API client: its flags and default public key.
+ * Its keys are managed in the Keys section of the client page (KeyManager).
  */
 export function ClientDetails({ data }: { data: unknown }) {
   const client = isRecord(data) ? data : {};
