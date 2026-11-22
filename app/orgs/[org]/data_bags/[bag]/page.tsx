@@ -3,6 +3,8 @@ import Link from "next/link";
 import { currentUser } from "@/lib/guard";
 import { dataBags } from "@/lib/cinc/databags";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
+import { PermissionsButton } from "@/components/permissions-button";
 import { ResourceTable } from "@/components/resource-table";
 import { EmptyState } from "@/components/empty-state";
 import { DataBagsIllustration } from "@/components/illustrations";
@@ -19,7 +21,10 @@ export default async function DataBagItemsPage({
   const bag = decodeURIComponent(raw);
   const user = await currentUser();
   const base = `/orgs/${org}/data_bags/${bag}`;
-  const res = await safeGet(() => dataBags.listItems(user, org, bag));
+  const [res, denied] = await Promise.all([
+    safeGet(() => dataBags.listItems(user, org, bag)),
+    permissionsDenied(user, org, { kind: "data", name: bag }),
+  ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
   }
@@ -34,9 +39,7 @@ export default async function DataBagItemsPage({
           ← back
         </Link>
         <div className="flex gap-2">
-        <Link href={permissionsHref(org, { kind: "data", name: bag })} className={buttonClass("secondary")}>
-          Permissions
-        </Link>
+        <PermissionsButton href={permissionsHref(org, { kind: "data", name: bag })} denied={denied} />
         <DeleteBagButton
           org={org}
           bag={bag}

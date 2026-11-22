@@ -4,9 +4,10 @@ import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { JsonEditor } from "./json-editor";
-import { Button, buttonClass } from "./ui/button";
+import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { PromptDialog } from "./ui/prompt-dialog";
+import { PermissionsButton } from "./permissions-button";
 import { JsonDiffView } from "./json-diff-view";
 import { diffJson } from "@/lib/json-diff";
 import type { ActionResult } from "@/lib/cinc/action";
@@ -36,6 +37,7 @@ export function ObjectEditor({
   nameKind,
   backHref,
   permissionsHref,
+  permissionsDenied,
   readOnly = false,
 }: {
   name: string;
@@ -61,6 +63,8 @@ export function ObjectEditor({
   backHref: string;
   /** Link to this object's permissions page, shown in the header. */
   permissionsHref?: string;
+  /** Why the viewer can't open the permissions page; disables the button. */
+  permissionsDenied?: string;
   readOnly?: boolean;
 }) {
   const router = useRouter();
@@ -162,9 +166,7 @@ export function ObjectEditor({
         </div>
         <div className="flex flex-wrap gap-2">
           {permissionsHref && (
-            <Link href={permissionsHref} className={buttonClass("secondary")}>
-              Permissions
-            </Link>
+            <PermissionsButton href={permissionsHref} denied={permissionsDenied} />
           )}
           {details && (
             <Button

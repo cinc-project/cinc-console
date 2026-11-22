@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/guard";
 import { cookbooks } from "@/lib/cinc/readonly";
 import { parseCookbookVersions } from "@/lib/cinc/cookbooks";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
 import { ObjectEditor } from "@/components/object-editor";
 import { CookbookVersions } from "@/components/details/cookbook-versions";
 import { DetailSection } from "@/components/details/primitives";
@@ -17,7 +18,10 @@ export default async function CookbookDetail({
   const { org, name: raw } = await params;
   const name = decodeURIComponent(raw);
   const user = await currentUser();
-  const res = await safeGet(() => cookbooks.get(user, org, name));
+  const [res, denied] = await Promise.all([
+    safeGet(() => cookbooks.get(user, org, name)),
+    permissionsDenied(user, org, { kind: "cookbooks", name }),
+  ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
   }
@@ -42,6 +46,7 @@ export default async function CookbookDetail({
       }
       backHref={`/orgs/${org}/cookbooks`}
       permissionsHref={permissionsHref(org, { kind: "cookbooks", name: name })}
+      permissionsDenied={denied}
       readOnly={true}
     />
   );

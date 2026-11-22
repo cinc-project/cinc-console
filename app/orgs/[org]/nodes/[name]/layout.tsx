@@ -1,6 +1,7 @@
 import { permissionsHref } from "@/lib/acl-kinds";
-import Link from "next/link";
-import { buttonClass } from "@/components/ui/button";
+import { currentUser } from "@/lib/guard";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
+import { PermissionsButton } from "@/components/permissions-button";
 import type { ReactNode } from "react";
 import { explainRead } from "@/lib/cinc/safe-get";
 import { NodeSidebar } from "@/components/node/node-sidebar";
@@ -22,9 +23,11 @@ export default async function NodeLayout({
   params: Promise<{ org: string; name: string }>;
 }) {
   const { org, name, base } = await nodeParams(params);
-  const [res, pairedClient] = await Promise.all([
+  const user = await currentUser();
+  const [res, pairedClient, denied] = await Promise.all([
     loadNode(org, name),
     loadPairedClient(org, name),
+    permissionsDenied(user, org, { kind: "nodes", name }),
   ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
@@ -44,9 +47,7 @@ export default async function NodeLayout({
         os={os}
         deleteButton={
           <div className="flex flex-wrap gap-2">
-            <Link href={permissionsHref(org, { kind: "nodes", name })} className={buttonClass("secondary")}>
-              Permissions
-            </Link>
+            <PermissionsButton href={permissionsHref(org, { kind: "nodes", name })} denied={denied} />
             <NodeDeleteButton
               name={name}
               listHref={`/orgs/${org}/nodes`}

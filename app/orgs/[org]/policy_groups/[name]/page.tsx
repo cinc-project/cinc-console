@@ -6,6 +6,7 @@ import {
   parsePolicyGroup,
 } from "@/lib/cinc/policy-groups";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
 import { ObjectEditor } from "@/components/object-editor";
 import { PolicyGroupPins } from "@/components/details/policy-group-pins";
 import { PolicyGroupNodes } from "@/components/details/policy-group-nodes";
@@ -19,9 +20,10 @@ export default async function PolicyGroupDetail({
   const { org, name: raw } = await params;
   const name = decodeURIComponent(raw);
   const user = await currentUser();
-  const [res, nodes] = await Promise.all([
+  const [res, nodes, denied] = await Promise.all([
     safeGet(() => getPolicyGroup(user, org, name)),
     safeGet(() => listPolicyGroupNodes(user, org, name)),
+    permissionsDenied(user, org, { kind: "policy_groups", name }),
   ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
@@ -49,6 +51,7 @@ export default async function PolicyGroupDetail({
       }
       backHref={`/orgs/${org}/policy_groups`}
       permissionsHref={permissionsHref(org, { kind: "policy_groups", name })}
+      permissionsDenied={denied}
       readOnly={true}
     />
   );
