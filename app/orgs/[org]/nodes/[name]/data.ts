@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { currentUser } from "@/lib/guard";
 import { makeResource } from "@/lib/cinc/resource";
+import { clients } from "@/lib/cinc/readonly";
 import { safeGet, type Fetched } from "@/lib/cinc/safe-get";
 import { getClientLifecycle } from "@/lib/cinc/client-lifecycle";
 import { getOsSupport, type OsSupport } from "@/lib/cinc/os-lifecycle";
@@ -52,6 +53,22 @@ export const loadNode = cache(
     };
   },
 );
+
+/**
+ * Whether the node delete dialog can offer to delete the client of the same
+ * name: "deletable" when it exists and isn't the org's validator, "forbidden"
+ * when the server won't show it to this user (it may exist, but they couldn't
+ * delete it either), null when there's none (or the read failed).
+ */
+export type PairedClient = "deletable" | "forbidden" | null;
+
+export async function loadPairedClient(org: string, name: string): Promise<PairedClient> {
+  const user = await currentUser();
+  const res = await safeGet(() => clients.get(user, org, name));
+  if ("error" in res) return res.error === "forbidden" ? "forbidden" : null;
+  const client = res.data as { validator?: unknown } | null;
+  return client?.validator === true ? null : "deletable";
+}
 
 /** The route's `[name]` param, decoded the way the list links encode it. */
 export async function nodeParams(

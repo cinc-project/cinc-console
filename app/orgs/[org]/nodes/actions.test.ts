@@ -15,9 +15,18 @@ vi.mock("@/lib/cinc/resource", () => ({
   makeResource: () => ({ get, update, create, remove }),
 }));
 
+const { getClient, deleteClient } = vi.hoisted(() => ({
+  getClient: vi.fn(),
+  deleteClient: vi.fn(),
+}));
+vi.mock("@/lib/cinc/readonly", () => ({ clients: { get: getClient } }));
+vi.mock("@/lib/cinc/clients", () => ({ deleteClient }));
+
 import { saveNode, createNode, deleteNode, setNodeEnvironment } from "./actions";
 
 beforeEach(() => {
+  getClient.mockReset();
+  deleteClient.mockReset();
   get.mockReset();
   update.mockReset();
   create.mockReset();
@@ -102,4 +111,85 @@ test("setNodeEnvironment translates 403 into forbidden", async () => {
   await expect(setNodeEnvironment("acme", "web01", "production")).resolves.toEqual({
     error: "forbidden",
   });
+});
+
+test("deleteNode leaves the client alone unless asked", async () => {
+  remove.mockResolvedValueOnce({});
+  await expect(deleteNode("acme", "web01")).resolves.toEqual({ ok: true });
+  expect(getClient).not.toHaveBeenCalled();
+  expect(deleteClient).not.toHaveBeenCalled();
+});
+
+test.each([["true"], [1], [{}], [false]])(
+  "deleteNode treats alsoDeleteClient %j as node only",
+  async (flag) => {
+    remove.mockResolvedValueOnce({});
+    await expect(deleteNode("acme", "web01", flag)).resolves.toEqual({ ok: true });
+    expect(deleteClient).not.toHaveBeenCalled();
+  },
+);
+
+test("deleteNode deletes the node, then its client, and revalidates both lists", async () => {
+  vi.mocked(revalidatePath).mockClear();
+  const order: string[] = [];
+  remove.mockImplementationOnce(async () => void order.push("node"));
+  getClient.mockResolvedValueOnce({ name: "web01", validator: false });
+  deleteClient.mockImplementationOnce(async () => void order.push("client"));
+  await expect(deleteNode("acme", "web01", true)).resolves.toEqual({ ok: true });
+  expect(order).toEqual(["node", "client"]);
+  expect(deleteClient).toHaveBeenCalledWith("alice", "acme", "web01");
+  expect(revalidatePath).toHaveBeenCalledWith("/orgs/acme/nodes", "layout");
+  expect(revalidatePath).toHaveBeenCalledWith("/orgs/acme/clients", "layout");
+});
+
+test("deleteNode does not touch the client when the node delete fails", async () => {
+  remove.mockRejectedValueOnce(new CincError(403, "denied"));
+  await expect(deleteNode("acme", "web01", true)).resolves.toEqual({ error: "forbidden" });
+  expect(getClient).not.toHaveBeenCalled();
+  expect(deleteClient).not.toHaveBeenCalled();
+});
+
+test("a forbidden client delete reports the node deleted and the client kept", async () => {
+  vi.mocked(revalidatePath).mockClear();
+  remove.mockResolvedValueOnce({});
+  getClient.mockResolvedValueOnce({ name: "web01" });
+  deleteClient.mockRejectedValueOnce(new CincError(403, "denied"));
+  const res = await deleteNode("acme", "web01", true);
+  expect(res).toMatchObject({ clientKept: "forbidden" });
+  expect("error" in res && res.error).toMatch(
+    /Node web01 was deleted, but client web01 wasn't: you don't have permission/,
+  );
+  expect(revalidatePath).toHaveBeenCalledWith("/orgs/acme/nodes", "layout");
+  expect(revalidatePath).toHaveBeenCalledWith("/orgs/acme/clients", "layout");
+});
+
+test("a server error on the client delete is reported as such", async () => {
+  remove.mockResolvedValueOnce({});
+  getClient.mockResolvedValueOnce({ name: "web01" });
+  deleteClient.mockRejectedValueOnce(new CincError(500, "boom"));
+  const res = await deleteNode("acme", "web01", true);
+  expect(res).toMatchObject({ clientKept: "error" });
+  expect("error" in res && res.error).toMatch(/the Cinc server returned an error/);
+});
+
+test("a client that is already gone counts as deleted", async () => {
+  remove.mockResolvedValueOnce({});
+  getClient.mockRejectedValueOnce(new CincError(404, "not found"));
+  await expect(deleteNode("acme", "web01", true)).resolves.toEqual({ ok: true });
+  expect(deleteClient).not.toHaveBeenCalled();
+});
+
+test("a client deleted between the check and the delete counts as deleted", async () => {
+  remove.mockResolvedValueOnce({});
+  getClient.mockResolvedValueOnce({ name: "web01" });
+  deleteClient.mockRejectedValueOnce(new CincError(404, "not found"));
+  await expect(deleteNode("acme", "web01", true)).resolves.toEqual({ ok: true });
+});
+
+test("deleteNode never deletes a validator client", async () => {
+  remove.mockResolvedValueOnce({});
+  getClient.mockResolvedValueOnce({ name: "acme-validator", validator: true });
+  const res = await deleteNode("acme", "acme-validator", true);
+  expect(res).toMatchObject({ clientKept: "validator" });
+  expect(deleteClient).not.toHaveBeenCalled();
 });

@@ -7,7 +7,7 @@ import { NodeSidebar } from "@/components/node/node-sidebar";
 import { NodeTabs } from "@/components/node/node-tabs";
 import { NodeDeleteButton } from "@/components/node/node-delete-button";
 import { deleteNode } from "../actions";
-import { loadNode, nodeParams } from "./data";
+import { loadNode, loadPairedClient, nodeParams } from "./data";
 
 /**
  * Shared frame for every node tab: the identity card on the left and the tab
@@ -22,7 +22,10 @@ export default async function NodeLayout({
   params: Promise<{ org: string; name: string }>;
 }) {
   const { org, name, base } = await nodeParams(params);
-  const res = await loadNode(org, name);
+  const [res, pairedClient] = await Promise.all([
+    loadNode(org, name),
+    loadPairedClient(org, name),
+  ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
   }
@@ -47,6 +50,7 @@ export default async function NodeLayout({
             <NodeDeleteButton
               name={name}
               listHref={`/orgs/${org}/nodes`}
+              pairedClient={pairedClient}
               onDelete={deleteNode.bind(null, org, name)}
             />
           </div>

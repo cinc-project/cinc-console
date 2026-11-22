@@ -57,3 +57,31 @@ test("an admin creates, edits, and deletes a node", async ({ page }) => {
     page.getByText("This no longer exists, or you don't have access to it."),
   ).toBeVisible();
 });
+
+// Decommissioning: the node's client of the same name goes with it, so its
+// key stops authenticating.
+test("deleting a node can also delete its client", async ({ page }) => {
+  const name = `e2e-decom-${Date.now()}`;
+  await login(page, ADMIN);
+
+  await page.goto(`/orgs/${ORG}/clients/new`);
+  await page.getByLabel("Name").fill(name);
+  await page.getByRole("button", { name: "Create client" }).click();
+  await expect(page.getByLabel(`Private key for ${name}`)).toBeVisible();
+
+  await page.goto(`/orgs/${ORG}/nodes/new`);
+  await page.getByLabel("Name").fill(name);
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}/nodes/${name}$`));
+
+  await page.getByRole("button", { name: "Delete" }).click();
+  const dialog = page.getByRole("dialog", { name: `Delete ${name}?` });
+  await expect(dialog.getByRole("checkbox", { name: `Also delete client ${name}` })).toBeChecked();
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}/nodes$`));
+
+  await page.goto(`/orgs/${ORG}/clients/${name}`);
+  await expect(
+    page.getByText("This no longer exists, or you don't have access to it."),
+  ).toBeVisible();
+});
