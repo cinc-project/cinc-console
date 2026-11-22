@@ -1,0 +1,4 @@
+{
+  "name": "production",
+  "policies": { "web-app": { "revision_id": "1.0.0" } }
+}

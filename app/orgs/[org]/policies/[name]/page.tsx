@@ -2,6 +2,7 @@ import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { policies } from "@/lib/cinc/readonly";
 import { parsePolicyRevisions } from "@/lib/cinc/policies";
+import { groupsByRevision, listPolicyGroups } from "@/lib/cinc/policy-groups";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { ObjectEditor } from "@/components/object-editor";
 import { PolicyRevisions } from "@/components/details/policy-revisions";
@@ -17,7 +18,12 @@ export default async function PolicyDetail({
   const { org, name: raw } = await params;
   const name = decodeURIComponent(raw);
   const user = await currentUser();
-  const res = await safeGet(() => policies.get(user, org, name));
+  const [res, groups] = await Promise.all([
+    safeGet(() => policies.get(user, org, name)),
+    // One list call gives every group's pins; a user who can't list groups
+    // still gets the policy, just without the "pinned in" badges.
+    safeGet(() => listPolicyGroups(user, org)),
+  ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
   }
@@ -32,6 +38,7 @@ export default async function PolicyDetail({
             org={org}
             name={name}
             revisions={revisions}
+            groups={"data" in groups ? groupsByRevision(groups.data, name) : {}}
             onDeleteRevision={deletePolicyRevisionAction.bind(null, org, name)}
             onDeletePolicy={deletePolicyAction.bind(null, org, name)}
           />

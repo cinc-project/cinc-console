@@ -35,9 +35,11 @@ gates editing in the UI, exactly as it would for `knife`.
 | Nodes, Roles, Environments, Data bags (+ items), Members & groups | View + create / edit / delete (ACL-gated) |
 | Clients | View + create + delete (ACL-gated) |
 | Cookbooks, Policies | View + delete a single version/revision or the whole object (ACL-gated) |
+| Policy groups | View each group's pinned policy revisions and nodes + remove a policy from a group or delete the group (ACL-gated) |
 
-Editing cookbook or policy content, and uploading cookbooks, remain out of scope
-for this version. Clients can be created and deleted but not edited (a client's
+Editing cookbook or policy content, uploading cookbooks, and pinning or
+promoting a policy revision into a group (that stays `policy push` from a
+workstation) remain out of scope for this version. Clients can be created and deleted but not edited (a client's
 private key is shown once at creation and is never retrievable again).
 
 ## Configuration

@@ -94,8 +94,10 @@ permission" (it never substitutes its own check).
   permissions (object, container, org and user ACLs) = view + edit per permission;
   clients = create + delete + key management (no edit of the client
   object itself); user keys on /profile; cookbooks/policies = view + delete
-  (a version/revision or the whole object). Editing cookbook/policy content
-  and cookbook uploads are out of scope. `_default` environment is read-only.
+  (a version/revision or the whole object); policy groups = view + delete
+  (unpin one policy, or the whole group). Editing cookbook/policy content,
+  cookbook uploads, and pinning/promoting a revision into a group (that's
+  `policy push`) are out of scope. `_default` environment is read-only.
 
 ## Dependency overrides
 

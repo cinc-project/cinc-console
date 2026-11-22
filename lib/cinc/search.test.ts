@@ -4,7 +4,7 @@ import { expect, test, vi, beforeEach } from "vitest";
 const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
-import { parseFleetRow, searchTotal } from "./search";
+import { escapeSearchTerm, parseFleetRow, searchTotal } from "./search";
 import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
@@ -52,4 +52,11 @@ test("parseFleetRow reads environment and platform, tolerating gaps", () => {
     platform: null,
     platformVersion: null,
   });
+});
+
+test("escapeSearchTerm escapes query syntax so a name matches itself", () => {
+  expect(escapeSearchTerm("production")).toBe("production");
+  expect(escapeSearchTerm("pre-prod")).toBe("pre\\-prod");
+  expect(escapeSearchTerm("a:b*c")).toBe("a\\:b\\*c");
+  expect(escapeSearchTerm('x OR "y"')).toBe('x\\ OR\\ \\"y\\"');
 });

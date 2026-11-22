@@ -1,0 +1,4 @@
+{
+  "name": "staging",
+  "policies": { "web-app": { "revision_id": "2.0.0" } }
+}

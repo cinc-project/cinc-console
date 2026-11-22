@@ -2,7 +2,7 @@
 
 import { requireUser } from "@/lib/session";
 import { makeResource } from "@/lib/cinc/resource";
-import { policies } from "@/lib/cinc/readonly";
+import { policies, policyGroups } from "@/lib/cinc/readonly";
 
 export type PaletteObject = { kind: string; label: string; name: string };
 
@@ -14,9 +14,9 @@ const KINDS = [
 
 /**
  * Names of the org's jump-to-able objects (nodes, roles, environments,
- * policies) for the ⌘K palette. List endpoints return name→url maps, so this is
- * names only. Each type is fetched in parallel and a type the user can't list
- * is skipped rather than failing the whole search.
+ * policies, policy groups) for the ⌘K palette. List endpoints return name→url
+ * maps, so this is names only. Each type is fetched in parallel and a type the
+ * user can't list is skipped rather than failing the whole search.
  */
 export async function searchOrgObjects(org: string): Promise<PaletteObject[]> {
   const user = await requireUser();
@@ -36,6 +36,7 @@ export async function searchOrgObjects(org: string): Promise<PaletteObject[]> {
       collect(k.kind, k.label, () => makeResource(k.kind).list(user, org)),
     ),
     collect("policies", "Policy", () => policies.list(user, org)),
+    collect("policy_groups", "Policy group", () => policyGroups.list(user, org)),
   ]);
 
   return out;

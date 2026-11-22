@@ -16,6 +16,14 @@ import type { FleetNode } from "./fleet";
 type SearchRow<T> = { url?: string; data?: T };
 type SearchResponse<T> = { total: number; start: number; rows: SearchRow<T>[] };
 
+/**
+ * Backslash-escape Lucene query syntax in a value, so a name like `prod:eu`
+ * or `a*` matches itself as one term instead of becoming a field or wildcard.
+ */
+export function escapeSearchTerm(value: string): string {
+  return value.replace(/[+\-&|!(){}[\]^"~*?:\\/\s]/g, "\\$&");
+}
+
 const PAGE_ROWS = 1000;
 /** Safety cap so a huge org can't spin forever; 50 pages = 50k nodes. */
 const MAX_PAGES = 50;

@@ -48,6 +48,8 @@ const pages = [
   `/orgs/${ORG}/clients`,
   `/orgs/${ORG}/cookbooks`,
   `/orgs/${ORG}/policies`,
+  `/orgs/${ORG}/policy_groups`,
+  `/orgs/${ORG}/policy_groups/production`,
   `/orgs/${ORG}/members`,
   "/profile",
 ];
