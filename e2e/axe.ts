@@ -7,6 +7,9 @@ import { expect, type Page } from "@playwright/test";
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 export async function scan(page: Page) {
+  // Next streams metadata on dynamic pages, so <title> can land just after the
+  // content a test waited for; axe would then report a missing document title.
+  await expect(page).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
   // Fail with the rule ids and offending selectors, not just a count.
   const summary = results.violations.map((v) => ({

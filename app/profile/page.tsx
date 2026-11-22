@@ -7,7 +7,8 @@ import { getConfig } from "@/lib/config";
 import { UserMenu } from "@/components/user-menu";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_VERSION } from "@/lib/version";
-import { ProfileForm } from "./profile-form";
+import { ProfileRow, PasswordRow } from "./profile-rows";
+import { DetailRow, DetailSheet } from "@/components/ui/detail-rows";
 import { loadKeys, type KeyOwner } from "@/lib/cinc/keys";
 import { KeyManager } from "@/components/keys/key-manager";
 import { createKey, updateKey, regenerateKey, deleteKey } from "@/app/keys/actions";
@@ -47,33 +48,33 @@ export default async function ProfilePage() {
           Your profile
         </h1>
         <p className="mb-6 font-mono text-sm text-muted">{username}</p>
-        {"error" in res ? (
-          <p className="text-sm text-danger">{explainRead(res.error)}</p>
-        ) : (
-          <ProfileForm initial={res.data} authMode={authMode} />
-        )}
-
-        <section className="mt-10 space-y-4" aria-labelledby="keys-heading">
-          <h2 id="keys-heading" className="text-lg font-semibold tracking-tight">
-            Your keys
-          </h2>
-          <p className="text-sm text-muted">
-            Tools such as cinc-cli and knife sign their requests with one of
-            these keys.
-          </p>
-          {"error" in keysRes ? (
-            <p className="text-sm text-danger">{explainRead(keysRes.error)}</p>
+        <DetailSheet>
+          {"error" in res ? (
+            <DetailRow label="Profile">
+              <p className="text-danger">{explainRead(res.error)}</p>
+            </DetailRow>
           ) : (
-            <KeyManager
-              owner={username}
-              rows={keysRes.data}
-              onCreate={createKey.bind(null, owner)}
-              onUpdate={updateKey.bind(null, owner)}
-              onRegenerate={regenerateKey.bind(null, owner)}
-              onDelete={deleteKey.bind(null, owner)}
-            />
+            <ProfileRow initial={res.data} />
           )}
-        </section>
+          <PasswordRow authMode={authMode} />
+          <DetailRow label={"data" in keysRes ? `Keys (${keysRes.data.length})` : "Keys"}>
+            <p className="mb-3 text-muted">
+              Tools such as cinc-cli and knife sign their requests with one of these keys.
+            </p>
+            {"error" in keysRes ? (
+              <p className="text-danger">{explainRead(keysRes.error)}</p>
+            ) : (
+              <KeyManager
+                owner={username}
+                rows={keysRes.data}
+                onCreate={createKey.bind(null, owner)}
+                onUpdate={updateKey.bind(null, owner)}
+                onRegenerate={regenerateKey.bind(null, owner)}
+                onDelete={deleteKey.bind(null, owner)}
+              />
+            )}
+          </DetailRow>
+        </DetailSheet>
       </div>
     </main>
     <SiteFooter version={APP_VERSION} />

@@ -1,43 +1,37 @@
 import { permissionsHref } from "@/lib/acl-kinds";
 import Link from "next/link";
 import { currentUser } from "@/lib/guard";
-import { users, type User } from "@/lib/cinc/users";
+import { users } from "@/lib/cinc/users";
 import { members, memberList } from "@/lib/cinc/members";
 import { loadKeys, type KeyOwner } from "@/lib/cinc/keys";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { getConfig } from "@/lib/config";
-import { ProfileForm } from "@/app/profile/profile-form";
+import { buttonClass } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
+import { DetailRow, DetailSheet } from "@/components/ui/detail-rows";
+import { Badge } from "@/components/details/primitives";
+import { ProfileList, ProfileRow, PasswordRow } from "@/app/profile/profile-rows";
 import { KeyManager } from "@/components/keys/key-manager";
 import { createKey, updateKey, regenerateKey, deleteKey } from "@/app/keys/actions";
-import { RemoveUserButton } from "../../remove-user-button";
 import { removeUser } from "../../actions";
 import { saveUserProfile, setUserPassword, setAdmin, deleteUser } from "../actions";
 import { AdminToggle } from "./admin-toggle";
-import { DeleteUserButton } from "./delete-user-button";
+import { UserActions } from "./user-actions";
 
-function ReadOnlyProfile({ data }: { data: User }) {
-  const rows: Array<[string, unknown]> = [
-    ["Display name", data.display_name],
-    ["First name", data.first_name],
-    ["Last name", data.last_name],
-    ["Email", data.email],
-  ];
+function LockIcon() {
   return (
-    <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-      {rows.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted">{label}</dt>
-          <dd className="text-text">{typeof value === "string" && value ? value : "—"}</dd>
-        </div>
-      ))}
-    </dl>
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
   );
 }
 
 /**
- * One member of the org. The full record (and so editing, the password and
- * keys) is only readable by the user, the superuser or a server admin; anyone
- * else in the org sees the member view, read-only.
+ * One member of the org, as one sheet of rows whose forms open on demand. The
+ * full record (and so editing, the password and keys) is only readable by the
+ * user, the superuser or a server admin; anyone else in the org sees the
+ * member view, read-only.
  */
 export default async function UserDetail({
   params,
@@ -72,93 +66,80 @@ export default async function UserDetail({
   const admin = "data" in adminsRes ? memberList(adminsRes.data, "users").includes(name) : null;
 
   return (
-    <div className="max-w-3xl space-y-10">
-      <div className="space-y-1">
-        <Link href={base} className="text-sm text-muted hover:text-text">
-          ← back
-        </Link>
-        <h1 className="text-xl font-semibold tracking-tight">
-          {record.display_name || name}
-        </h1>
-        <p className="font-mono text-sm text-muted">{name}</p>
-        <Link href={permissionsHref(org, { kind: "users", name })} className="text-sm text-link hover:underline">
-          Permissions on this user
-        </Link>
+    <div className="max-w-3xl space-y-5">
+      <Link href={base} className="text-sm text-muted hover:text-text">
+        ← back
+      </Link>
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <h1 className="break-words text-2xl font-semibold tracking-tight">
+            {record.display_name || name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+            <span className="font-mono">{name}</span>
+            <CopyButton value={name} label="Copy username" iconOnly />
+            {admin !== null && <Badge tone={admin ? "primary" : "muted"}>{admin ? "Admin" : "Member"}</Badge>}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link href={permissionsHref(org, { kind: "users", name })} className={buttonClass("secondary")}>
+            Permissions
+          </Link>
+          <UserActions
+            org={org}
+            name={name}
+            admin={admin === true}
+            backHref={base}
+            onRemove={removeUser.bind(null, org, name)}
+            onDelete={editable && name !== user ? deleteUser.bind(null, org, name) : undefined}
+          />
+        </div>
       </div>
 
-      <section className="space-y-4" aria-labelledby="profile-heading">
-        <h2 id="profile-heading" className="text-lg font-semibold tracking-tight">
-          Profile
-        </h2>
+      <DetailSheet>
         {editable ? (
-          <ProfileForm
-            initial={record}
+          <ProfileRow initial={record} onSave={saveUserProfile.bind(null, org, name)} />
+        ) : (
+          <DetailRow label="Profile">
+            <ProfileList data={record} />
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
+              <LockIcon />
+              Only {name}, the superuser or a server administrator can change this
+              profile, its password and its keys.
+            </p>
+          </DetailRow>
+        )}
+
+        {editable && (
+          <PasswordRow
             authMode={authMode}
             self={name === user}
-            onSaveDetails={saveUserProfile.bind(null, org, name)}
-            onChangePassword={setUserPassword.bind(null, org, name)}
+            onChange={setUserPassword.bind(null, org, name)}
           />
-        ) : (
-          <>
-            <ReadOnlyProfile data={record} />
-            <p className="text-sm text-muted">
-              Only {name}, the superuser or a server administrator can change
-              this profile, its password and its keys.
-            </p>
-          </>
         )}
-      </section>
 
-      {admin !== null && (
-        <section className="space-y-4" aria-labelledby="role-heading">
-          <h2 id="role-heading" className="text-lg font-semibold tracking-tight">
-            Role in {org}
-          </h2>
+        {admin !== null && (
           <AdminToggle name={name} admin={admin} onChange={setAdmin.bind(null, org, name)} />
-        </section>
-      )}
+        )}
 
-      {keysRes && (
-        <section className="space-y-4" aria-labelledby="keys-heading">
-          <h2 id="keys-heading" className="text-lg font-semibold tracking-tight">
-            Keys
-          </h2>
-          {"error" in keysRes ? (
-            <p className="text-sm text-danger">{explainRead(keysRes.error)}</p>
-          ) : (
-            <KeyManager
-              owner={name}
-              rows={keysRes.data}
-              onCreate={createKey.bind(null, owner)}
-              onUpdate={updateKey.bind(null, owner)}
-              onRegenerate={regenerateKey.bind(null, owner)}
-              onDelete={deleteKey.bind(null, owner)}
-            />
-          )}
-        </section>
-      )}
-
-      <section className="space-y-4" aria-labelledby="danger-heading">
-        <h2 id="danger-heading" className="text-lg font-semibold tracking-tight">
-          Membership
-        </h2>
-        <div className="flex flex-wrap items-center gap-4">
-          <RemoveUserButton
-            username={name}
-            admin={admin === true}
-            onRemove={removeUser.bind(null, org, name)}
-            label="Remove from organization"
-            redirectTo={base}
-          />
-          {editable && name !== user && (
-            <DeleteUserButton
-              name={name}
-              backHref={base}
-              onDelete={deleteUser.bind(null, org, name)}
-            />
-          )}
-        </div>
-      </section>
+        {keysRes && (
+          <DetailRow label={"data" in keysRes ? `Keys (${keysRes.data.length})` : "Keys"}>
+            {"error" in keysRes ? (
+              <p className="text-danger">{explainRead(keysRes.error)}</p>
+            ) : (
+              <KeyManager
+                owner={name}
+                rows={keysRes.data}
+                onCreate={createKey.bind(null, owner)}
+                onUpdate={updateKey.bind(null, owner)}
+                onRegenerate={regenerateKey.bind(null, owner)}
+                onDelete={deleteKey.bind(null, owner)}
+              />
+            )}
+          </DetailRow>
+        )}
+      </DetailSheet>
     </div>
   );
 }

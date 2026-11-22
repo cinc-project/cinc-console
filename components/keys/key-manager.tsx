@@ -1,13 +1,16 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { ActionMenu } from "@/components/ui/action-menu";
+import { IconWarning } from "@/components/ui/icons";
 import { OneTimeKey } from "@/components/one-time-key";
 import { nameError } from "@/lib/cinc/names";
-import { isPast } from "@/lib/key-expiry";
+import { daysUntil, isPast } from "@/lib/key-expiry";
 import type { KeyRow } from "@/lib/cinc/keys";
 import type { KeyChanges, KeyResult, NewKey } from "@/app/keys/actions";
 
@@ -72,12 +75,17 @@ function ExpiryField({
   );
 }
 
-function AddKeyForm({
+/** Days before expiry at which a key is flagged as expiring soon. */
+const SOON_DAYS = 14;
+
+function AddKeyDialog({
   onCreate,
   onCreated,
+  onCancel,
 }: {
   onCreate: (input: NewKey) => Promise<KeyResult>;
   onCreated: (name: string, privateKey: string | undefined) => void;
+  onCancel: () => void;
 }) {
   const id = useId();
   const [name, setName] = useState("");
@@ -89,8 +97,7 @@ function AddKeyForm({
   const nameErr = nameError("key", name);
   const missingKey = mode === "paste" && !publicKey.trim();
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit() {
     setError(null);
     const n = name.trim();
     startTransition(async () => {
@@ -100,9 +107,6 @@ function AddKeyForm({
         expires,
       });
       if ("ok" in res) {
-        setName("");
-        setPublicKey("");
-        setExpires(null);
         onCreated(n, res.privateKey);
       } else {
         setError(explain(res.error));
@@ -111,10 +115,15 @@ function AddKeyForm({
   }
 
   return (
-    <form onSubmit={submit} className="max-w-2xl space-y-4" aria-labelledby={`${id}-h`}>
-      <h3 id={`${id}-h`} className="text-base font-semibold">
-        Add a key
-      </h3>
+    <FormDialog
+      title="Add a key"
+      submitLabel="Add key"
+      canSubmit={!!name.trim() && !nameErr && !missingKey}
+      pending={pending}
+      error={error}
+      onSubmit={submit}
+      onCancel={onCancel}
+    >
       <div className="space-y-1">
         <label htmlFor={`${id}-name`} className="block text-sm text-muted">
           Name
@@ -174,18 +183,35 @@ function AddKeyForm({
       )}
 
       <ExpiryField value={expires} onChange={setExpires} />
-
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-
-      <Button type="submit" disabled={pending || !name.trim() || !!nameErr || missingKey}>
-        {pending ? "Adding…" : "Add key"}
-      </Button>
-    </form>
+    </FormDialog>
   );
+}
+
+/** Status cell text: expired, expiring soon (with the day count) or active. */
+function KeyStatus({ row }: { row: KeyRow }) {
+  const date = row.expires ?? null;
+  if (row.expired || isPast(date)) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-danger">
+        <span aria-hidden="true">
+          <IconWarning />
+        </span>
+        Expired
+      </span>
+    );
+  }
+  const days = daysUntil(date);
+  if (days !== null && days <= SOON_DAYS) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-warn">
+        <span aria-hidden="true">
+          <IconWarning />
+        </span>
+        {days === 1 ? "Expires tomorrow" : `Expires in ${days} days`}
+      </span>
+    );
+  }
+  return <span className="text-muted">Active</span>;
 }
 
 type Dialog =
@@ -219,6 +245,14 @@ export function KeyManager({
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [revealed, setRevealed] = useState<{ key: string; privateKey: string } | null>(null);
+  const [adding, setAdding] = useState(false);
+  const revealedRef = useRef<HTMLHeadingElement>(null);
+
+  // A new private key replaces whatever had focus (a closed dialog's opener);
+  // move focus to it so a screen reader reads the "save this now" warning.
+  useEffect(() => {
+    if (revealed) revealedRef.current?.focus();
+  }, [revealed]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -254,10 +288,10 @@ export function KeyManager({
   const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {revealed && (
         <div className="max-w-2xl space-y-2">
-          <h3 className="text-base font-semibold">
+          <h3 ref={revealedRef} tabIndex={-1} className="text-base font-semibold focus:outline-none">
             Private key for <span className="font-mono">{revealed.key}</span>
           </h3>
           <OneTimeKey
@@ -299,46 +333,41 @@ export function KeyManager({
             </thead>
             <tbody>
               {sorted.map((k) => {
-                const expired = k.expired || isPast(k.expires ?? null);
                 return (
                   <tr key={k.name} className="border-b border-border last:border-0">
                     <td className="px-4 py-2 font-mono text-text">{k.name}</td>
                     <td className="px-4 py-2 text-muted">
                       {k.expires === undefined ? "Unknown" : (k.expires ?? "Never")}
                     </td>
-                    <td className={expired ? "px-4 py-2 text-danger" : "px-4 py-2 text-muted"}>
-                      {expired ? "Expired" : "Active"}
-                    </td>
                     <td className="px-4 py-2">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          disabled={pending}
-                          aria-label={`Edit key ${k.name}`}
-                          onClick={() =>
-                            setDialog({ kind: "edit", key: k, name: k.name, expires: k.expires ?? null })
-                          }
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          disabled={pending}
-                          aria-label={`Regenerate key ${k.name}`}
-                          onClick={() => setDialog({ kind: "regenerate", key: k })}
-                        >
-                          Regenerate
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          disabled={pending}
-                          className="text-danger hover:text-danger"
-                          aria-label={`Delete key ${k.name}`}
-                          onClick={() => setDialog({ kind: "delete", key: k })}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                      <KeyStatus row={k} />
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <ActionMenu
+                        label={`Actions for key ${k.name}`}
+                        items={[
+                          {
+                            label: "Edit",
+                            hint: "Rename or change expiry",
+                            disabled: pending,
+                            onSelect: () =>
+                              setDialog({ kind: "edit", key: k, name: k.name, expires: k.expires ?? null }),
+                          },
+                          {
+                            label: "Regenerate",
+                            hint: "Shows a new private key once",
+                            disabled: pending,
+                            onSelect: () => setDialog({ kind: "regenerate", key: k }),
+                          },
+                          "separator",
+                          {
+                            label: "Delete",
+                            danger: true,
+                            disabled: pending,
+                            onSelect: () => setDialog({ kind: "delete", key: k }),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 );
@@ -406,13 +435,20 @@ export function KeyManager({
         be undone.
       </ConfirmDialog>
 
-      <AddKeyForm
-        onCreate={onCreate}
-        onCreated={(name, privateKey) => {
-          if (privateKey) setRevealed({ key: name, privateKey });
-          router.refresh();
-        }}
-      />
+      <Button variant="secondary" onClick={() => setAdding(true)}>
+        Add key…
+      </Button>
+      {adding && (
+        <AddKeyDialog
+          onCreate={onCreate}
+          onCancel={() => setAdding(false)}
+          onCreated={(name, privateKey) => {
+            setAdding(false);
+            if (privateKey) setRevealed({ key: name, privateKey });
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

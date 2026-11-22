@@ -45,11 +45,22 @@ describe("GroupDetails", () => {
 });
 
 describe("ClientDetails", () => {
-  it("renders validator/admin as yes/no", () => {
+  it("names a validator and explains what it can do", () => {
     render(<ClientDetails data={{ name: "node1", validator: true, admin: false }} />);
-    expect(screen.getByText("node1")).toBeInTheDocument();
-    expect(screen.getByText("yes")).toBeInTheDocument();
-    expect(screen.getByText("no")).toBeInTheDocument();
+    expect(screen.getByText("Validator")).toBeInTheDocument();
+    expect(screen.getByText(/can only register new clients/)).toBeInTheDocument();
+  });
+
+  it("marks an admin client", () => {
+    render(<ClientDetails data={{ name: "ci", validator: false, admin: true }} />);
+    expect(screen.getByText("Client")).toBeInTheDocument();
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+  });
+
+  it("folds the public key away behind a disclosure", () => {
+    render(<ClientDetails data={{ name: "node1", public_key: "-----BEGIN PUBLIC KEY-----" }} />);
+    expect(screen.getByText("Show public key")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy public key" })).toBeInTheDocument();
   });
 });
 

@@ -11,12 +11,21 @@ const keyRow = (page: Page, name: string) =>
   });
 
 async function addKey(page: Page, name: string, publicKey?: string) {
-  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByRole("button", { name: "Add key…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a key" });
+  await dialog.getByLabel("Name", { exact: true }).fill(name);
   if (publicKey) {
-    await page.getByLabel(/Use my own public key/).check();
-    await page.getByLabel("Public key (PEM)").fill(publicKey);
+    await dialog.getByLabel(/Use my own public key/).check();
+    await dialog.getByLabel("Public key (PEM)").fill(publicKey);
   }
-  await page.getByRole("button", { name: "Add key" }).click();
+  await dialog.getByRole("button", { name: "Add key", exact: true }).click();
+}
+
+/** Opens a key row's "⋯" menu and picks an action. */
+async function keyAction(page: Page, key: string, action: "Edit" | "Regenerate" | "Delete") {
+  const label = `Actions for key ${key}`;
+  await page.getByRole("button", { name: label }).click();
+  await page.getByRole("group", { name: label }).getByRole("button", { name: new RegExp(`^${action}`) }).click();
 }
 
 test("a user manages their own keys on the profile page", async ({ page }) => {
@@ -33,7 +42,7 @@ test("a user manages their own keys on the profile page", async ({ page }) => {
   await expect(keyRow(page, "e2e-gen")).toContainText("Never");
 
   // Rename it and give it a past expiry.
-  await page.getByRole("button", { name: "Edit key e2e-gen" }).click();
+  await keyAction(page, "e2e-gen", "Edit");
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Name").fill("e2e-old");
   await dialog.getByLabel("Never expires").uncheck();
@@ -44,18 +53,18 @@ test("a user manages their own keys on the profile page", async ({ page }) => {
   await expect(keyRow(page, "e2e-gen")).toHaveCount(0);
 
   // Regenerate in place.
-  await page.getByRole("button", { name: "Regenerate key e2e-old" }).click();
+  await keyAction(page, "e2e-old", "Regenerate");
   await page.getByRole("dialog").getByRole("button", { name: "Regenerate" }).click();
   await expect(page.getByLabel(`Private key e2e-old for ${ADMIN.username}`)).toHaveValue(/PRIVATE KEY/);
   await page.getByRole("button", { name: "Done" }).click();
 
   // Delete it.
-  await page.getByRole("button", { name: "Delete key e2e-old" }).click();
+  await keyAction(page, "e2e-old", "Delete");
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(keyRow(page, "e2e-old")).toHaveCount(0);
 
   // default is now anna's only valid key: deleting it would lock her out.
-  await page.getByRole("button", { name: "Delete key default" }).click();
+  await keyAction(page, "default", "Delete");
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(alert(page, "This is the user's last valid key.")).toBeVisible();
   await expect(keyRow(page, "default")).toBeVisible();
@@ -78,7 +87,7 @@ test("an admin adds and regenerates a client's keys", async ({ page }) => {
   await expect(page.getByText("Save this private key now.")).toHaveCount(0);
 
   // Re-registering is regenerating default.
-  await page.getByRole("button", { name: "Regenerate key default" }).click();
+  await keyAction(page, "default", "Regenerate");
   await page.getByRole("dialog").getByRole("button", { name: "Regenerate" }).click();
   await expect(page.getByLabel(`Private key default for ${client}`)).toHaveValue(/PRIVATE KEY/);
 });

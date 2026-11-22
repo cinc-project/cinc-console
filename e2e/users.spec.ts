@@ -22,18 +22,30 @@ test("the superuser creates a user, manages them, and deletes them", async ({ pa
   await scan(page);
 
   // Make admin, then take it back.
-  await page.getByRole("button", { name: "Make admin" }).click();
+  const role = page.getByRole("region", { name: "Role" });
+  await role.getByRole("button", { name: "Make admin" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Make admin" }).click();
-  await expect(page.getByText("Role: Admin")).toBeVisible();
-  await page.getByRole("button", { name: "Remove admin" }).click();
+  await expect(role).toContainText("in the admins group");
+  await role.getByRole("button", { name: "Remove admin" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Remove admin" }).click();
-  await expect(page.getByText("Role: Member")).toBeVisible();
+  await expect(role).toContainText("in the users group");
+
+  // Edit the profile in place.
+  const profile = page.getByRole("region", { name: "Profile" });
+  await profile.getByRole("button", { name: "Edit" }).click();
+  await profile.getByLabel("Last name").fill("New");
+  await profile.getByRole("button", { name: "Save" }).click();
+  await expect(profile.getByRole("status")).toHaveText("Saved.");
+  await expect(profile).toContainText("New");
 
   // Set a password, then sign in with it.
-  await page.getByLabel("New password").fill(NEW_USER.password);
-  await page.getByLabel("Confirm password").fill(NEW_USER.password);
-  await page.getByRole("button", { name: "Set password" }).click();
-  await expect(alert(page, "Password set.")).toBeVisible();
+  await page.getByRole("button", { name: "Set password…" }).click();
+  const pwDialog = page.getByRole("dialog", { name: "Set password" });
+  await scan(page);
+  await pwDialog.getByLabel("New password").fill(NEW_USER.password);
+  await pwDialog.getByLabel("Confirm password").fill(NEW_USER.password);
+  await pwDialog.getByRole("button", { name: "Set password" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Password set." })).toBeVisible();
   await context.clearCookies();
   await login(page, NEW_USER);
   await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}$`));
@@ -42,7 +54,8 @@ test("the superuser creates a user, manages them, and deletes them", async ({ pa
   await context.clearCookies();
   await login(page, SUPERUSER);
   await page.goto(`/orgs/${ORG}/members/users/${NEW_USER.username}`);
-  await page.getByRole("button", { name: "Delete user from server" }).click();
+  await page.getByRole("button", { name: `More actions for ${NEW_USER.username}` }).click();
+  await page.getByRole("button", { name: /^Delete user from server/ }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox").fill("nope");
   await dialog.getByRole("button", { name: "Delete user" }).click();
@@ -70,6 +83,6 @@ test("an org admin can't create users or edit another user's record", async ({ p
   await page.getByRole("link", { name: MEMBER.username, exact: true }).click();
   await expect(page.getByText(`Only ${MEMBER.username}, the superuser or a server administrator`)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Keys" })).toHaveCount(0);
-  await expect(page.getByText("Role: Member")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Role" })).toContainText("in the users group");
   await scan(page);
 });
