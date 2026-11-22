@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import Link from "next/link";
 import { currentUser } from "@/lib/guard";
 import { users, type User } from "@/lib/cinc/users";
@@ -80,6 +81,9 @@ export default async function UserDetail({
           {record.display_name || name}
         </h1>
         <p className="font-mono text-sm text-muted">{name}</p>
+        <Link href={permissionsHref(org, { kind: "users", name })} className="text-sm text-link hover:underline">
+          Permissions on this user
+        </Link>
       </div>
 
       <section className="space-y-4" aria-labelledby="profile-heading">

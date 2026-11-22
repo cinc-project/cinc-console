@@ -1,3 +1,6 @@
+import { permissionsHref } from "@/lib/acl-kinds";
+import Link from "next/link";
+import { buttonClass } from "@/components/ui/button";
 import type { ReactNode } from "react";
 import { explainRead } from "@/lib/cinc/safe-get";
 import { NodeSidebar } from "@/components/node/node-sidebar";
@@ -37,11 +40,16 @@ export default async function NodeLayout({
         latestMajor={lifecycle.latestMajor}
         os={os}
         deleteButton={
-          <NodeDeleteButton
-            name={name}
-            listHref={`/orgs/${org}/nodes`}
-            onDelete={deleteNode.bind(null, org, name)}
-          />
+          <div className="flex flex-wrap gap-2">
+            <Link href={permissionsHref(org, { kind: "nodes", name })} className={buttonClass("secondary")}>
+              Permissions
+            </Link>
+            <NodeDeleteButton
+              name={name}
+              listHref={`/orgs/${org}/nodes`}
+              onDelete={deleteNode.bind(null, org, name)}
+            />
+          </div>
         }
       />
       <div className="min-w-0 flex-1 space-y-5">

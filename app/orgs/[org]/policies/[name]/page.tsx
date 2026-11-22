@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { policies } from "@/lib/cinc/readonly";
 import { parsePolicyRevisions } from "@/lib/cinc/policies";
@@ -40,6 +41,7 @@ export default async function PolicyDetail({
         </div>
       }
       backHref={`/orgs/${org}/policies`}
+      permissionsHref={permissionsHref(org, { kind: "policies", name: name })}
       readOnly={true}
     />
   );

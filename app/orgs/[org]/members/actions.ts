@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { members, groupUpdateBody, memberList, missingMembers } from "@/lib/cinc/members";
 import { runAction, parseJsonObject, type ActionResult } from "@/lib/cinc/action";
 import { isCincError } from "@/lib/cinc/errors";
+import { nameError } from "@/lib/cinc/names";
 
 export async function inviteUser(
   org: string,
@@ -111,11 +112,29 @@ export async function saveGroup(
   return result;
 }
 
+/**
+ * The groups every org is created with. The server doesn't protect them, but
+ * deleting one breaks the org (admins, users) or its clients, so the console
+ * refuses.
+ */
+const BUILT_IN_GROUPS = new Set(["admins", "billing-admins", "clients", "users", "public_key_read_access"]);
+
+export async function createGroup(org: string, group: string): Promise<ActionResult> {
+  const user = await requireUser();
+  if (typeof group !== "string" || nameError("group", group) || !group.trim()) {
+    return { error: "invalid name" };
+  }
+  return runAction(() => members.createGroup(user, org, group.trim()), {
+    revalidate: `/orgs/${org}/members`,
+  });
+}
+
 export async function deleteGroup(
   org: string,
   group: string,
 ): Promise<ActionResult> {
   const user = await requireUser();
+  if (BUILT_IN_GROUPS.has(group)) return { error: "built-in group" };
   return runAction(() => members.deleteGroup(user, org, group), {
     revalidate: `/orgs/${org}/members`,
   });

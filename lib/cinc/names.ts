@@ -9,6 +9,7 @@
  *   node                /^[\-[:alnum:]_:.]+$/   (alnum _ - . :)
  *
  *   key                 /^[\.:\-[:alnum:]_]+$/  (alnum _ - . :)
+ *   group               /^[a-z0-9_-]+$/          (lowercase, digits, _ -)
  *
  * Clients are validated by the Erchef server rather than chef-client; we apply
  * the data-bag character set as a close, conservative approximation.
@@ -20,7 +21,8 @@ export type NameKind =
   | "role"
   | "node"
   | "client"
-  | "key";
+  | "key"
+  | "group";
 
 const PATTERNS: Record<NameKind, RegExp> = {
   data_bag: /^[.\-A-Za-z0-9_]+$/,
@@ -30,6 +32,7 @@ const PATTERNS: Record<NameKind, RegExp> = {
   node: /^[.:\-A-Za-z0-9_]+$/,
   client: /^[.\-A-Za-z0-9_]+$/,
   key: /^[.:\-A-Za-z0-9_]+$/,
+  group: /^[a-z0-9_-]+$/,
 };
 
 const HINTS: Record<NameKind, string> = {
@@ -40,6 +43,7 @@ const HINTS: Record<NameKind, string> = {
   node: "letters, numbers, and . : _ -",
   client: "letters, numbers, and . _ -",
   key: "letters, numbers, and . : _ -",
+  group: "lowercase letters, numbers, _ and -",
 };
 
 // Data bags may not be named after other Chef object types.

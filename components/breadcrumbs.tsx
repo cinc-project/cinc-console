@@ -17,9 +17,9 @@ const NODE_TAB_LABELS: Record<string, string> = {
 
 /**
  * Path-derived breadcrumb for org pages, e.g. `acme / Data Bags / secrets /
- * api_key`. The org and section/object segments link to their pages; "groups"
- * under members is a structural path segment (no list page of its own) so it's
- * shown as plain text. The last crumb is the current page. Nothing renders on
+ * api_key`. The org and section/object segments link to their pages; segments
+ * with no page of their own ("groups" and "users" under members, the kind
+ * under permissions) are shown as plain text. The last crumb is the current page. Nothing renders on
  * the org home or outside /orgs.
  */
 export function Breadcrumbs() {
@@ -41,8 +41,11 @@ export function Breadcrumbs() {
     const label = isSection
       ? (NAV.find((n) => n.slug === seg)?.label ?? decodeURIComponent(seg))
       : (nodeTab ?? decodeURIComponent(seg));
-    // "groups" sits under /members but has no list page of its own.
-    const structural = seg === "groups" && rest[i - 1] === "members";
+    // Path segments with no page of their own: "groups" and "users" under
+    // /members, and the object kind under /permissions (…/permissions/nodes/web01).
+    const structural =
+      (i === 1 && rest[0] === "members" && (seg === "groups" || seg === "users")) ||
+      (i === 1 && rest[0] === "permissions" && seg !== "organization" && rest.length > 2);
     crumbs.push({ label, href: acc, link: !structural });
   });
 

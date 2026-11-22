@@ -91,6 +91,7 @@ permission" (it never substitutes its own check).
   `.bind(null, org, name)` and passed to `ObjectEditor`/`NewObjectForm`.
 - **Mutations return `{ ok: true } | { error: string }`** via `runAction`.
 - v1 scope: nodes/roles/environments/data bags/members & groups = CRUD;
+  permissions (object, container, org and user ACLs) = view + edit per permission;
   clients = create + delete + key management (no edit of the client
   object itself); user keys on /profile; cookbooks/policies = view + delete
   (a version/revision or the whole object). Editing cookbook/policy content

@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { members } from "@/lib/cinc/members";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
@@ -29,6 +30,7 @@ export default async function GroupDetail({
         />
       }
       backHref={base}
+      permissionsHref={permissionsHref(org, { kind: "groups", name: name })}
       onSave={saveGroup.bind(null, org, name)}
       onDelete={deleteGroup.bind(null, org, name)}
     />

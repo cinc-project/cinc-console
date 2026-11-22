@@ -130,6 +130,15 @@ export const members = {
       path: cincPath`/groups/${group}`,
       body,
     }),
+  /** Create an empty group. erchef reads the name from `groupname`. */
+  createGroup: (user: string, org: string, group: string) =>
+    cincRequest<unknown>({
+      user,
+      org,
+      method: "POST",
+      path: cincPath`/groups`,
+      body: { groupname: group },
+    }),
   deleteGroup: (user: string, org: string, group: string) =>
     cincRequest<unknown>({
       user,

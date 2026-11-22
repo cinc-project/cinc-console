@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { makeResource } from "@/lib/cinc/resource";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
@@ -31,6 +32,7 @@ export default async function EnvironmentDetail({
         initialJson={JSON.stringify(res.data, null, 2)}
         details={<EnvironmentDetails data={res.data} />}
         backHref={base}
+        permissionsHref={permissionsHref(org, { kind: "environments", name })}
         onDuplicate={createEnvironment.bind(null, org)}
         nameKind="environment"
         readOnly={true}
@@ -49,6 +51,7 @@ export default async function EnvironmentDetail({
         />
       }
       backHref={base}
+      permissionsHref={permissionsHref(org, { kind: "environments", name })}
       onSave={saveEnvironment.bind(null, org, name)}
       onDelete={deleteEnvironment.bind(null, org, name)}
       onDuplicate={createEnvironment.bind(null, org)}

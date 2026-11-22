@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { makeResource } from "@/lib/cinc/resource";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
@@ -32,6 +33,7 @@ export default async function RoleDetail({
         />
       }
       backHref={base}
+      permissionsHref={permissionsHref(org, { kind: "roles", name: name })}
       onSave={saveRole.bind(null, org, name)}
       onDelete={deleteRole.bind(null, org, name)}
       onDuplicate={createRole.bind(null, org)}

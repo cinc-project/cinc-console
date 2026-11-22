@@ -1,3 +1,4 @@
+import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { cookbooks } from "@/lib/cinc/readonly";
 import { parseCookbookVersions } from "@/lib/cinc/cookbooks";
@@ -40,6 +41,7 @@ export default async function CookbookDetail({
         </div>
       }
       backHref={`/orgs/${org}/cookbooks`}
+      permissionsHref={permissionsHref(org, { kind: "cookbooks", name: name })}
       readOnly={true}
     />
   );
