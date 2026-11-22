@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { toExpiration, fromExpiration, isPast } from "./key-expiry";
+import { toExpiration, fromExpiration, isPast, daysUntil } from "./key-expiry";
 
 test("toExpiration maps no date to infinity and a date to UTC midnight with the Z", () => {
   expect(toExpiration(null)).toBe("infinity");
@@ -22,4 +22,12 @@ test("isPast compares a date against now", () => {
   expect(isPast("2026-05-31", now)).toBe(true);
   expect(isPast("2026-06-02", now)).toBe(false);
   expect(isPast(null, now)).toBe(false);
+});
+
+test("daysUntil counts the days left before the key lapses at 00:00 UTC", () => {
+  const now = Date.parse("2026-11-21T12:00:00Z");
+  expect(daysUntil(null, now)).toBeNull();
+  expect(daysUntil("2026-11-22", now)).toBe(1);
+  expect(daysUntil("2026-11-30", now)).toBe(9);
+  expect(daysUntil("2026-11-01", now)).toBeLessThan(0);
 });

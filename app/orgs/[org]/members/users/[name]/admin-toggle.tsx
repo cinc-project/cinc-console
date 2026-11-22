@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DetailRow } from "@/components/ui/detail-rows";
 import type { ActionResult } from "@/lib/cinc/action";
 
 function explain(error: string, name: string): string {
@@ -14,7 +15,7 @@ function explain(error: string, name: string): string {
   return error;
 }
 
-/** Shows the user's role and adds them to, or removes them from, admins. */
+/** The Role row: shows the user's role and adds them to, or removes them from, admins. */
 export function AdminToggle({
   name,
   admin,
@@ -40,20 +41,24 @@ export function AdminToggle({
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-text">
-        Role: <strong>{admin ? "Admin" : "Member"}</strong>
+    <DetailRow
+      label="Role"
+      action={
+        <Button variant="secondary" disabled={pending} onClick={() => setConfirming(true)}>
+          {admin ? "Remove admin" : "Make admin"}
+        </Button>
+      }
+    >
+      <p>
+        <strong className="font-medium">{admin ? "Admin" : "Member"}</strong>
         <span className="text-muted">
           {admin
-            ? " (in the admins group: manages members, groups and permissions)"
-            : " (in the users group)"}
+            ? " · in the admins group: manages members, groups and permissions"
+            : " · in the users group"}
         </span>
       </p>
-      <Button variant="secondary" disabled={pending} onClick={() => setConfirming(true)}>
-        {admin ? "Remove admin" : "Make admin"}
-      </Button>
       {error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="mt-1 text-sm text-danger">
           {error}
         </p>
       )}
@@ -69,6 +74,6 @@ export function AdminToggle({
           ? `${name} stays a member but can no longer manage this organization.`
           : `${name} will be able to manage this organization's members, groups and permissions.`}
       </ConfirmDialog>
-    </div>
+    </DetailRow>
   );
 }

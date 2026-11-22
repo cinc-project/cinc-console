@@ -16,21 +16,21 @@ function explain(error: string, username: string): string {
   return error;
 }
 
-export function RemoveUserButton({
-  username,
-  admin = false,
-  onRemove,
-  label = "Remove",
-  redirectTo,
-}: {
+type RemoveUserOptions = {
   username: string;
   /** A direct member of admins: removal takes them out of admins first. */
   admin?: boolean;
   onRemove: () => Promise<ActionResult>;
-  label?: string;
   /** Where to go afterwards, when the current page is about this user. */
   redirectTo?: string;
-}) {
+};
+
+/**
+ * Removing a user from the org: `start()` asks for confirmation, `dialog` is
+ * the confirmation to render, `error` explains a refusal. Shared by the list's
+ * Remove button and the user page's actions menu.
+ */
+export function useRemoveUser({ username, admin = false, onRemove, redirectTo }: RemoveUserOptions) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -50,6 +50,29 @@ export function RemoveUserButton({
     });
   }
 
+  const dialog = (
+    <ConfirmDialog
+      open={confirming}
+      title={`Remove ${username}?`}
+      confirmLabel="Remove"
+      confirmVariant="danger"
+      onConfirm={remove}
+      onCancel={() => setConfirming(false)}
+    >
+      This removes <span className="font-mono">{username}</span> from this
+      organization{admin ? ", after first removing them from the admins group" : ""}.
+      They can be invited back later.
+    </ConfirmDialog>
+  );
+
+  return { start: () => setConfirming(true), pending, error, dialog };
+}
+
+export function RemoveUserButton({
+  label = "Remove",
+  ...options
+}: RemoveUserOptions & { label?: string }) {
+  const { start, pending, error, dialog } = useRemoveUser(options);
   return (
     <div className="flex items-center gap-2">
       {error && (
@@ -59,24 +82,13 @@ export function RemoveUserButton({
       )}
       <Button
         variant="ghost"
-        onClick={() => setConfirming(true)}
+        onClick={start}
         disabled={pending}
         className="text-danger hover:text-danger"
       >
         {pending ? "Removing…" : label}
       </Button>
-      <ConfirmDialog
-        open={confirming}
-        title={`Remove ${username}?`}
-        confirmLabel="Remove"
-        confirmVariant="danger"
-        onConfirm={remove}
-        onCancel={() => setConfirming(false)}
-      >
-        This removes <span className="font-mono">{username}</span> from this
-        organization{admin ? ", after first removing them from the admins group" : ""}.
-        They can be invited back later.
-      </ConfirmDialog>
+      {dialog}
     </div>
   );
 }

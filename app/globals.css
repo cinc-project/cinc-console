@@ -11,7 +11,8 @@
   --surface-2: #232230;
   --border: #2d2b3a;
   --primary: #7c27ff;
-  --primary-hover: #9357ff;
+  /* Still 5.0:1 under white text; a lighter hover dropped below AA. */
+  --primary-hover: #8a3dff;
   --primary-foreground: #ffffff;
   /* Bright enough for AA body-text contrast on both --bg (6.8:1) and
      --surface (6.3:1); used for links and active/selected state. */

@@ -28,3 +28,12 @@ export function fromExpiration(value: string | undefined): string | null {
 export function isPast(date: string | null, nowMs: number = Date.now()): boolean {
   return date !== null && Date.parse(`${date}T00:00:00Z`) <= nowMs;
 }
+
+/**
+ * Days left until an expiry day, rounded up (1 the day before it lapses at
+ * 00:00 UTC), or null for no date. Zero or less once it has passed.
+ */
+export function daysUntil(date: string | null, nowMs: number = Date.now()): number | null {
+  if (date === null) return null;
+  return Math.ceil((Date.parse(`${date}T00:00:00Z`) - nowMs) / 86_400_000);
+}

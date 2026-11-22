@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -29,7 +29,11 @@ export function buttonClass(variant: Variant = "primary", className?: string): s
 export function Button({
   variant = "primary",
   className,
+  ref,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return <button className={buttonClass(variant, className)} {...props} />;
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  ref?: Ref<HTMLButtonElement>;
+}) {
+  return <button ref={ref} className={buttonClass(variant, className)} {...props} />;
 }
