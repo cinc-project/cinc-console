@@ -4,6 +4,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export const ADMIN = { username: "anna", password: "anna123" } as const; // acme + beta admin
 export const MEMBER = { username: "bob", password: "bob123" } as const; // acme `users` group only
 export const INVITEE = { username: "carol", password: "carol123" } as const; // in no org; members.spec.ts invites her
+export const SUPERUSER = { username: "sam", password: "sam123" } as const; // admin: true (superuser), a plain member of acme
 
 export const ORG = "acme";
 

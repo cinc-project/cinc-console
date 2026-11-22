@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { currentUser } from "@/lib/guard";
+import { Button } from "@/components/ui/button";
 import { members, memberList } from "@/lib/cinc/members";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
 import { InviteForm } from "./invite-form";
@@ -27,7 +29,12 @@ export default async function MembersPage({
   return (
     <div className="space-y-10">
       <section className="space-y-4">
-        <h1 className="text-xl font-semibold tracking-tight">Users</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold tracking-tight">Users</h1>
+          <Link href={`${base}/new-user`}>
+            <Button variant="secondary">New user</Button>
+          </Link>
+        </div>
         <InviteForm onInvite={inviteUser.bind(null, org)} />
         {"error" in usersRes ? (
           <p className="text-sm text-danger">{explainRead(usersRes.error)}</p>
@@ -37,6 +44,7 @@ export default async function MembersPage({
           </div>
         ) : (
           <UsersList
+            basePath={base}
             items={usersRes.data.map((d) => ({
               name: d.user.username,
               admin: admins ? admins.has(d.user.username) : null,

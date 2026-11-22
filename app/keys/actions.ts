@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/session";
 import { keys, loadKeys, type KeyOwner } from "@/lib/cinc/keys";
-import { isCincError } from "@/lib/cinc/errors";
+import { isCincError, serverReason } from "@/lib/cinc/errors";
 import { isUnsafePathError } from "@/lib/cinc/path";
 import { nameError } from "@/lib/cinc/names";
 import { toExpiration, isPast } from "@/lib/key-expiry";
@@ -27,13 +27,6 @@ function validOwner(o: unknown): o is KeyOwner {
 
 function pathFor(owner: KeyOwner): string {
   return owner.kind === "user" ? "/profile" : `/orgs/${owner.org}/clients`;
-}
-
-/** The server's own explanation from an error body, if it gave one. */
-function serverReason(body: unknown): string | null {
-  const e = body && typeof body === "object" ? (body as { error?: unknown }).error : body;
-  if (Array.isArray(e)) return e.filter((s) => typeof s === "string").join(" ") || null;
-  return typeof e === "string" ? e : null;
 }
 
 async function run(owner: KeyOwner, fn: () => Promise<string | void>): Promise<KeyResult> {
