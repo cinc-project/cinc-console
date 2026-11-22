@@ -20,11 +20,16 @@ export function RemoveUserButton({
   username,
   admin = false,
   onRemove,
+  label = "Remove",
+  redirectTo,
 }: {
   username: string;
   /** A direct member of admins: removal takes them out of admins first. */
   admin?: boolean;
   onRemove: () => Promise<ActionResult>;
+  label?: string;
+  /** Where to go afterwards, when the current page is about this user. */
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +42,8 @@ export function RemoveUserButton({
     startTransition(async () => {
       const res = await onRemove();
       if ("ok" in res) {
-        router.refresh();
+        if (redirectTo) router.push(redirectTo);
+        else router.refresh();
       } else {
         setError(explain(res.error, username));
       }
@@ -57,7 +63,7 @@ export function RemoveUserButton({
         disabled={pending}
         className="text-danger hover:text-danger"
       >
-        {pending ? "Removing…" : "Remove"}
+        {pending ? "Removing…" : label}
       </Button>
       <ConfirmDialog
         open={confirming}

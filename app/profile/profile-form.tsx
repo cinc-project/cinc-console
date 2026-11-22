@@ -6,14 +6,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { User } from "@/lib/cinc/users";
+import type { ActionResult } from "@/lib/cinc/action";
+import type { ProfileDetails } from "@/lib/user-fields";
 import { saveProfile, changePassword } from "./actions";
 
 type Status = { kind: "ok" | "err"; text: string } | null;
 
 function explain(e: string): string {
-  return e === "forbidden"
-    ? "You don't have permission to change this."
-    : e;
+  if (e === "forbidden") return "You don't have permission to change this.";
+  if (e === "password too short") return "Use at least 6 characters.";
+  return e;
 }
 
 function Field({
@@ -59,12 +61,23 @@ function StatusLine({ status }: { status: Status }) {
   );
 }
 
+/**
+ * Profile details and password. On /profile it changes the signed-in user;
+ * another user's page passes actions bound to that user (`self` false only
+ * changes the wording).
+ */
 export function ProfileForm({
   initial,
   authMode,
+  onSaveDetails = saveProfile,
+  onChangePassword = changePassword,
+  self = true,
 }: {
   initial: User;
   authMode: "local" | "ldap";
+  onSaveDetails?: (details: ProfileDetails) => Promise<ActionResult>;
+  onChangePassword?: (password: string) => Promise<ActionResult>;
+  self?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -83,7 +96,7 @@ export function ProfileForm({
     e.preventDefault();
     setDetailStatus(null);
     startTransition(async () => {
-      const res = await saveProfile({
+      const res = await onSaveDetails({
         display_name: displayName,
         first_name: firstName,
         last_name: lastName,
@@ -106,9 +119,9 @@ export function ProfileForm({
       return;
     }
     startTransition(async () => {
-      const res = await changePassword(pw);
+      const res = await onChangePassword(pw);
       if ("ok" in res) {
-        setPwStatus({ kind: "ok", text: "Password changed." });
+        setPwStatus({ kind: "ok", text: self ? "Password changed." : "Password set." });
         setPw("");
         setPw2("");
       } else {
@@ -137,14 +150,15 @@ export function ProfileForm({
         <Card>
           <h2 className="font-medium">Change password</h2>
           <p className="mt-2 text-sm text-muted">
-            Your password is managed by your organization&rsquo;s directory.
-            Contact your administrator to change it.
+            {self
+              ? "Your password is managed by your organization\u2019s directory. Contact your administrator to change it."
+              : "This user\u2019s password is managed by your organization\u2019s directory."}
           </p>
         </Card>
       ) : (
         <Card>
           <form onSubmit={submitPassword} className="space-y-4">
-            <h2 className="font-medium">Change password</h2>
+            <h2 className="font-medium">{self ? "Change password" : "Set password"}</h2>
             <Field
               label="New password"
               value={pw}
@@ -161,7 +175,7 @@ export function ProfileForm({
             />
             <StatusLine status={pwStatus} />
             <Button type="submit" disabled={pending || !pw}>
-              Change password
+              {self ? "Change password" : "Set password"}
             </Button>
           </form>
         </Card>

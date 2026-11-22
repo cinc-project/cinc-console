@@ -22,7 +22,7 @@ export type UserItem = {
   onRemove: () => Promise<ActionResult>;
 };
 
-export function UsersList({ items }: { items: UserItem[] }) {
+export function UsersList({ basePath, items }: { basePath: string; items: UserItem[] }) {
   const { sort, setSort } = useSort("users", DEFAULT_SORT, KEYS);
   const sorted = [...items].sort((a, b) =>
     applyDir(byString(a.name, b.name), sort.dir),
@@ -54,7 +54,14 @@ export function UsersList({ items }: { items: UserItem[] }) {
         <tbody>
           {sorted.map((u) => (
             <tr key={u.name} className="border-b border-border last:border-0">
-              <td className="px-4 py-2 font-mono text-text">{u.name}</td>
+              <td className="p-0">
+                <Link
+                  href={`${basePath}/users/${encodeURIComponent(u.name)}`}
+                  className="block px-4 py-2 font-mono text-text transition-colors hover:text-link"
+                >
+                  {u.name}
+                </Link>
+              </td>
               {showRole && (
                 <td className="px-4 py-2 text-muted">{u.admin ? "Admin" : "Member"}</td>
               )}

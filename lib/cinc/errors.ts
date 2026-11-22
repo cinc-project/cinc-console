@@ -25,3 +25,13 @@ export class CincError extends Error {
 export function isCincError(e: unknown): e is CincError {
   return e instanceof CincError;
 }
+
+/**
+ * The server's own explanation from an error body ({"error": "…"} or
+ * {"error": ["…"]}), or null if it gave none.
+ */
+export function serverReason(body: unknown): string | null {
+  const e = body && typeof body === "object" ? (body as { error?: unknown }).error : body;
+  if (Array.isArray(e)) return e.filter((s) => typeof s === "string").join(" ") || null;
+  return typeof e === "string" && e ? e : null;
+}
