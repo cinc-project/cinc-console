@@ -102,9 +102,25 @@ export function NodeOverview({
           {facts.policyName ? (
             <>
               <dt className="text-muted">Policy</dt>
-              <dd className="font-mono">{facts.policyName}</dd>
+              <dd className="font-mono">
+                <Link
+                  href={`/orgs/${org}/policies/${encodeURIComponent(facts.policyName)}`}
+                >
+                  {facts.policyName}
+                </Link>
+              </dd>
               <dt className="text-muted">Policy group</dt>
-              <dd className="font-mono">{facts.policyGroup ?? "—"}</dd>
+              <dd className="font-mono">
+                {facts.policyGroup ? (
+                  <Link
+                    href={`/orgs/${org}/policy_groups/${encodeURIComponent(facts.policyGroup)}`}
+                  >
+                    {facts.policyGroup}
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </dd>
             </>
           ) : (
             <>

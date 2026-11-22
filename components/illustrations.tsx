@@ -98,6 +98,19 @@ export function PoliciesIllustration() {
   );
 }
 
+/** Two stages, each with a policy document pinned into it, and one to come. */
+export function PolicyGroupsIllustration() {
+  return (
+    <Frame>
+      <rect x="10" y="14" width="22" height="44" rx="3" />
+      <rect x="37" y="14" width="22" height="44" rx="3" />
+      <rect x="64" y="14" width="22" height="44" rx="3" strokeDasharray="4 3" className={MUTED} />
+      <path d="M16 26h10M16 32h7M43 26h10M43 32h7" className={MUTED} />
+      <path d="M16 44l3 3 6-6M43 44l3 3 6-6" className="stroke-success" />
+    </Frame>
+  );
+}
+
 /** A terminal window: an API identity. */
 export function ClientsIllustration() {
   return (

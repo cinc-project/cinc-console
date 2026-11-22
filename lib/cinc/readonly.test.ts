@@ -4,7 +4,7 @@ import { expect, test, vi, beforeEach } from "vitest";
 const req = vi.fn();
 vi.mock("./client", () => ({ cincRequest: (...a: unknown[]) => req(...a) }));
 
-import { cookbooks, clients } from "./readonly";
+import { cookbooks, clients, policyGroups } from "./readonly";
 import { cincPath } from "./path";
 
 beforeEach(() => req.mockReset());
@@ -28,5 +28,16 @@ test("clients.get hits GET /clients/<name>", async () => {
     org: "acme",
     method: "GET",
     path: cincPath`/clients/web01`,
+  });
+});
+
+test("policyGroups.list hits GET /policy_groups", async () => {
+  req.mockResolvedValueOnce({});
+  await policyGroups.list("alice", "acme");
+  expect(req).toHaveBeenCalledWith({
+    user: "alice",
+    org: "acme",
+    method: "GET",
+    path: cincPath`/policy_groups`,
   });
 });

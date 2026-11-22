@@ -4,7 +4,8 @@ import { cincPath } from "./path";
 
 /**
  * A read-only org-scoped object family living at /<kind>. Browsing only —
- * no create/update/delete — used for cookbooks, policies, and clients.
+ * no create/update/delete — used for cookbooks, policies, policy groups, and
+ * clients.
  */
 function readOnlyResource(kind: string) {
   return {
@@ -27,4 +28,5 @@ function readOnlyResource(kind: string) {
 
 export const cookbooks = readOnlyResource("cookbooks");
 export const policies = readOnlyResource("policies");
+export const policyGroups = readOnlyResource("policy_groups");
 export const clients = readOnlyResource("clients");

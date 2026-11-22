@@ -20,6 +20,7 @@ function objectHref(org: string, target: AclTarget): string {
     groups: `${base}/members/groups/${n}`,
     cookbooks: `${base}/cookbooks/${n}`,
     policies: `${base}/policies/${n}`,
+    policy_groups: `${base}/policy_groups/${n}`,
     users: `${base}/members/users/${n}`,
   };
   return pages[target.kind] ?? `${base}/permissions`;

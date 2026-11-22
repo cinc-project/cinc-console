@@ -8,5 +8,6 @@ export const NAV: { label: string; slug: string }[] = [
   { label: "Permissions", slug: "permissions" },
   { label: "Cookbooks", slug: "cookbooks" },
   { label: "Policies", slug: "policies" },
+  { label: "Policy Groups", slug: "policy_groups" },
   { label: "Clients", slug: "clients" },
 ];

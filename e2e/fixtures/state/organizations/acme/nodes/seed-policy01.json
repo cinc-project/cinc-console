@@ -1,0 +1,11 @@
+{
+  "name": "seed-policy01",
+  "chef_environment": "_default",
+  "json_class": "Chef::Node",
+  "chef_type": "node",
+  "run_list": [],
+  "policy_name": "web-app",
+  "policy_group": "production",
+  "normal": {},
+  "automatic": {}
+}
