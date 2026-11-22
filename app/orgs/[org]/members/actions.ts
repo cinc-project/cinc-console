@@ -1,8 +1,9 @@
 "use server";
 
 import { requireUser } from "@/lib/session";
-import { members, groupUpdateBody, missingMembers } from "@/lib/cinc/members";
+import { members, groupUpdateBody, memberList, missingMembers } from "@/lib/cinc/members";
 import { runAction, parseJsonObject, type ActionResult } from "@/lib/cinc/action";
+import { isCincError } from "@/lib/cinc/errors";
 
 export async function inviteUser(
   org: string,
@@ -14,14 +15,69 @@ export async function inviteUser(
   });
 }
 
+export async function cancelInvite(org: string, id: string): Promise<ActionResult> {
+  const user = await requireUser();
+  return runAction(() => members.cancelInvite(user, org, id), {
+    revalidate: `/orgs/${org}/members`,
+  });
+}
+
+/** The server's refusal to remove a member who is still an admin. */
+function isAdminRefusal(e: unknown): boolean {
+  return isCincError(e) && e.forbidden && JSON.stringify(e.body ?? "").includes("admins group");
+}
+
+/**
+ * Remove a user from the org.
+ *
+ * The server refuses to remove a member of `admins` (checked through nested
+ * groups too) with a 403 that would read as "no permission". So a direct
+ * member of `admins` is taken out of it first, unless that would leave the org
+ * with no admin at all. Only the users list is sent, so the server keeps the
+ * group's clients and nested groups. If `admins` can't be read, the removal is
+ * attempted anyway and the server decides.
+ */
 export async function removeUser(
   org: string,
   username: string,
 ): Promise<ActionResult> {
   const user = await requireUser();
-  return runAction(() => members.removeUser(user, org, username), {
-    revalidate: `/orgs/${org}/members`,
-  });
+
+  let admins: Record<string, unknown> | null = null;
+  try {
+    admins = await members.getGroup(user, org, "admins");
+  } catch (e) {
+    if (!isCincError(e)) throw e;
+  }
+  const adminUsers = memberList(admins, "users");
+  const isDirectAdmin = admins !== null && adminUsers.includes(username);
+  if (isDirectAdmin) {
+    const remaining =
+      adminUsers.length - 1 +
+      memberList(admins, "clients").length +
+      memberList(admins, "groups").length;
+    if (remaining === 0) return { error: "last admin" };
+  }
+
+  let refused = false;
+  const result = await runAction(
+    async () => {
+      if (isDirectAdmin) {
+        await members.updateGroup(user, org, "admins", {
+          groupname: "admins",
+          actors: { users: adminUsers.filter((n) => n !== username) },
+        });
+      }
+      try {
+        await members.removeUser(user, org, username);
+      } catch (e) {
+        if (!isAdminRefusal(e)) throw e;
+        refused = true;
+      }
+    },
+    { revalidate: `/orgs/${org}/members` },
+  );
+  return refused ? { error: "nested admin" } : result;
 }
 
 /**

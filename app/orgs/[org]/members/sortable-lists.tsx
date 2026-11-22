@@ -12,14 +12,23 @@ import type { ActionResult } from "@/lib/cinc/action";
 const KEYS = ["name"] as const;
 const DEFAULT_SORT: SortState = { key: "name", dir: "asc" };
 
-/** A user row plus its pre-bound remove action (created on the server). */
-export type UserItem = { name: string; onRemove: () => Promise<ActionResult> };
+/**
+ * A user row plus its pre-bound remove action (created on the server). `admin`
+ * is null when the admins group couldn't be read, so the role is unknown.
+ */
+export type UserItem = {
+  name: string;
+  admin: boolean | null;
+  onRemove: () => Promise<ActionResult>;
+};
 
 export function UsersList({ items }: { items: UserItem[] }) {
   const { sort, setSort } = useSort("users", DEFAULT_SORT, KEYS);
   const sorted = [...items].sort((a, b) =>
     applyDir(byString(a.name, b.name), sort.dir),
   );
+  // Plain members can't read admins; show no role column rather than a guess.
+  const showRole = items.some((u) => u.admin !== null);
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <table className="w-full text-sm">
@@ -32,6 +41,11 @@ export function UsersList({ items }: { items: UserItem[] }) {
               sort={sort}
               onSort={setSort}
             />
+            {showRole && (
+              <th scope="col" className="px-4 py-2 font-medium">
+                Role
+              </th>
+            )}
             <th scope="col" className="px-4 py-2 text-right font-medium">
               <span className="sr-only">Actions</span>
             </th>
@@ -41,9 +55,16 @@ export function UsersList({ items }: { items: UserItem[] }) {
           {sorted.map((u) => (
             <tr key={u.name} className="border-b border-border last:border-0">
               <td className="px-4 py-2 font-mono text-text">{u.name}</td>
+              {showRole && (
+                <td className="px-4 py-2 text-muted">{u.admin ? "Admin" : "Member"}</td>
+              )}
               <td className="px-4 py-2">
                 <div className="flex justify-end">
-                  <RemoveUserButton username={u.name} onRemove={u.onRemove} />
+                  <RemoveUserButton
+                    username={u.name}
+                    admin={u.admin === true}
+                    onRemove={u.onRemove}
+                  />
                 </div>
               </td>
             </tr>

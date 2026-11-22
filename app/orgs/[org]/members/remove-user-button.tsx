@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { ActionResult } from "@/lib/cinc/action";
 
-function explain(error: string): string {
+function explain(error: string, username: string): string {
   if (error === "forbidden")
     return "You don't have permission to remove users in this organization.";
+  if (error === "last admin")
+    return `${username} is the organization's only admin. Make someone else an admin first.`;
+  if (error === "nested admin")
+    return `${username} is an admin through a group inside admins. Remove them from that group first.`;
   return error;
 }
 
 export function RemoveUserButton({
   username,
+  admin = false,
   onRemove,
 }: {
   username: string;
+  /** A direct member of admins: removal takes them out of admins first. */
+  admin?: boolean;
   onRemove: () => Promise<ActionResult>;
 }) {
   const router = useRouter();
@@ -32,7 +39,7 @@ export function RemoveUserButton({
       if ("ok" in res) {
         router.refresh();
       } else {
-        setError(explain(res.error));
+        setError(explain(res.error, username));
       }
     });
   }
@@ -61,7 +68,8 @@ export function RemoveUserButton({
         onCancel={() => setConfirming(false)}
       >
         This removes <span className="font-mono">{username}</span> from this
-        organization. They can be invited back later.
+        organization{admin ? ", after first removing them from the admins group" : ""}.
+        They can be invited back later.
       </ConfirmDialog>
     </div>
   );

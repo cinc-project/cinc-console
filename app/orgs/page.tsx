@@ -3,7 +3,10 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { currentSession } from "@/lib/guard";
 import { listUserOrgs } from "@/lib/cinc/orgs";
+import { listMyInvites } from "@/lib/cinc/invitations";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { MyInvites } from "./my-invites";
+import { acceptInvite, declineInvite } from "./actions";
 import { Card } from "@/components/ui/card";
 import { UserMenu } from "@/components/user-menu";
 import { SiteFooter } from "@/components/site-footer";
@@ -11,10 +14,16 @@ import { APP_VERSION } from "@/lib/version";
 
 export default async function OrgsPage() {
   const { username, displayName } = await currentSession();
-  const res = await safeGet(() => listUserOrgs(username));
+  const [res, invitesRes] = await Promise.all([
+    safeGet(() => listUserOrgs(username)),
+    safeGet(() => listMyInvites(username)),
+  ]);
+  // An invitation is only answerable here, so a failed read just hides them.
+  const invites = "data" in invitesRes ? invitesRes.data : [];
 
-  // With a single org there's nothing to pick — go straight in.
-  if ("data" in res && res.data.length === 1) {
+  // With a single org and nothing to answer, there's nothing to pick — go
+  // straight in.
+  if ("data" in res && res.data.length === 1 && invites.length === 0) {
     redirect(`/orgs/${res.data[0].name}`);
   }
 
@@ -37,6 +46,21 @@ export default async function OrgsPage() {
       </header>
 
       <div className="mx-auto max-w-3xl p-6">
+        {invites.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-4 text-sm uppercase tracking-wide text-muted">
+              Invitations
+            </h2>
+            <MyInvites
+              items={invites.map((i) => ({
+                orgname: i.orgname,
+                onAccept: acceptInvite.bind(null, i.id),
+                onDecline: declineInvite.bind(null, i.id),
+              }))}
+            />
+          </section>
+        )}
+
         <h2 className="mb-4 text-sm uppercase tracking-wide text-muted">
           Your organizations
         </h2>
