@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.12.0 - 2026-11-22
+
+### Merged pull requests
+
+- Edit permissions and create groups in the console (#167)
+- Create and manage users from the members page (#166)
+- Manage user and client keys in the console (#165)
+- Complete the org invitation flow and fix removing admins (#164)
+- Save group members in the shape erchef reads (#163)
+
 ## 0.11.0 - 2026-11-22
 
 ### Merged pull requests
