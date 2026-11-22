@@ -18,6 +18,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   children,
+  controls,
 }: {
   open: boolean;
   title: string;
@@ -26,6 +27,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
   children?: ReactNode;
+  /** Form controls (e.g. an extra option) shown below the description. */
+  controls?: ReactNode;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -76,6 +79,7 @@ export function ConfirmDialog({
             {children}
           </div>
         )}
+        {controls && <div className="mb-4 text-sm">{controls}</div>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel}>
             Cancel
