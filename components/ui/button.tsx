@@ -21,6 +21,8 @@ export function buttonClass(variant: Variant = "primary", className?: string): s
     "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
     "disabled:cursor-not-allowed disabled:opacity-50",
+    // A control that stays focusable so its tooltip can say why it's off.
+    "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
     variants[variant],
     className,
   );

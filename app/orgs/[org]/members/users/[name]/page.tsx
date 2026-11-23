@@ -5,8 +5,9 @@ import { users } from "@/lib/cinc/users";
 import { members, memberList } from "@/lib/cinc/members";
 import { loadKeys, type KeyOwner } from "@/lib/cinc/keys";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
+import { PermissionsButton } from "@/components/permissions-button";
 import { getConfig } from "@/lib/config";
-import { buttonClass } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DetailRow, DetailSheet } from "@/components/ui/detail-rows";
 import { Badge } from "@/components/details/primitives";
@@ -45,9 +46,10 @@ export default async function UserDetail({
   const { authMode } = getConfig();
   const owner: KeyOwner = { kind: "user", name };
 
-  const [fullRes, adminsRes] = await Promise.all([
+  const [fullRes, adminsRes, denied] = await Promise.all([
     safeGet(() => users.get(user, name)),
     safeGet(() => members.getGroup(user, org, "admins")),
+    permissionsDenied(user, org, { kind: "users", name }),
   ]);
   const editable = "data" in fullRes;
   const recordRes = editable ? fullRes : await safeGet(() => users.getMember(user, org, name));
@@ -84,10 +86,7 @@ export default async function UserDetail({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {/* nosemgrep: js-open-redirect -- same-origin path */}
-          <Link href={permissionsHref(org, { kind: "users", name })} className={buttonClass("secondary")}>
-            Permissions
-          </Link>
+          <PermissionsButton href={permissionsHref(org, { kind: "users", name })} denied={denied} />
           <UserActions
             org={org}
             name={name}

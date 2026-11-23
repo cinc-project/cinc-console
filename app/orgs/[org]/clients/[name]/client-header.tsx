@@ -2,8 +2,7 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { buttonClass } from "@/components/ui/button";
+import { PermissionsButton } from "@/components/permissions-button";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DetailRow, DetailSheet } from "@/components/ui/detail-rows";
@@ -26,6 +25,7 @@ export function ClientHeader({
   admin,
   backHref,
   permissionsHref,
+  permissionsDenied,
   onDelete,
   children,
 }: {
@@ -35,6 +35,8 @@ export function ClientHeader({
   admin: boolean;
   backHref: string;
   permissionsHref: string;
+  /** Why the viewer can't open the permissions page; disables the button. */
+  permissionsDenied?: string;
   onDelete: () => Promise<ActionResult>;
   /** The page's rows, rendered on the server. */
   children: ReactNode;
@@ -76,9 +78,7 @@ export function ClientHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={permissionsHref} className={buttonClass("secondary")}>
-            Permissions
-          </Link>
+          <PermissionsButton href={permissionsHref} denied={permissionsDenied} />
           <ActionMenu
             label={`More actions for ${name}`}
             variant="secondary"

@@ -3,6 +3,7 @@ import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { clients } from "@/lib/cinc/readonly";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
 import { DetailRow } from "@/components/ui/detail-rows";
 import { ClientDetails, clientFlags } from "@/components/details/client-details";
 import { deleteClientAction } from "../actions";
@@ -21,9 +22,10 @@ export default async function ClientDetail({
   const user = await currentUser();
   const owner: KeyOwner = { kind: "client", org, name };
   const backHref = `/orgs/${org}/clients`;
-  const [res, keysRes] = await Promise.all([
+  const [res, keysRes, denied] = await Promise.all([
     safeGet(() => clients.get(user, org, name)),
     safeGet(() => loadKeys(user, owner)),
+    permissionsDenied(user, org, { kind: "clients", name }),
   ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
@@ -43,6 +45,7 @@ export default async function ClientDetail({
         admin={admin}
         backHref={backHref}
         permissionsHref={permissionsHref(org, { kind: "clients", name })}
+        permissionsDenied={denied}
         onDelete={deleteClientAction.bind(null, org, name)}
       >
         <ClientDetails data={res.data} />

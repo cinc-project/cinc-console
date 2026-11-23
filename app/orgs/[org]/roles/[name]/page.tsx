@@ -2,6 +2,7 @@ import { permissionsHref } from "@/lib/acl-kinds";
 import { currentUser } from "@/lib/guard";
 import { makeResource } from "@/lib/cinc/resource";
 import { safeGet, explainRead } from "@/lib/cinc/safe-get";
+import { permissionsDenied } from "@/lib/cinc/acl-access";
 import { ObjectEditor } from "@/components/object-editor";
 import { RoleDetails } from "@/components/details/role-details";
 import { saveRole, deleteRole, createRole } from "../actions";
@@ -17,7 +18,10 @@ export default async function RoleDetail({
   const name = decodeURIComponent(raw);
   const user = await currentUser();
   const base = `/orgs/${org}/roles`;
-  const res = await safeGet(() => roles.get(user, org, name));
+  const [res, denied] = await Promise.all([
+    safeGet(() => roles.get(user, org, name)),
+    permissionsDenied(user, org, { kind: "roles", name }),
+  ]);
   if ("error" in res) {
     return <p className="text-sm text-danger">{explainRead(res.error)}</p>;
   }
@@ -34,6 +38,7 @@ export default async function RoleDetail({
       }
       backHref={base}
       permissionsHref={permissionsHref(org, { kind: "roles", name: name })}
+      permissionsDenied={denied}
       onSave={saveRole.bind(null, org, name)}
       onDelete={deleteRole.bind(null, org, name)}
       onDuplicate={createRole.bind(null, org)}

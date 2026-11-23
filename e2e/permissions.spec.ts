@@ -71,3 +71,26 @@ test("a member without grant is told why they can't see permissions", async ({ p
   await page.goto(`/orgs/${ORG}/permissions/organization`);
   await expect(page.getByText("You need grant permission here to see these permissions.")).toBeVisible();
 });
+
+test("a member without grant gets a disabled Permissions button that says why", async ({ page }) => {
+  await login(page, MEMBER);
+  await page.goto(`/orgs/${ORG}/members/users/${ADMIN.username}`);
+  const why = "You need grant permission on this user to view or change its permissions.";
+  const control = page.locator('[role="link"][aria-disabled="true"]', { hasText: "Permissions" });
+  await expect(control).toBeVisible();
+  await expect(control).not.toHaveAttribute("href");
+  await expect(control).toHaveAccessibleDescription(why);
+
+  await control.focus();
+  await expect(page.getByRole("tooltip")).toHaveText(why);
+  await scan(page);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("tooltip")).toBeHidden();
+  await expect(control).toBeFocused();
+
+  await control.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(why);
+  // Playwright won't click an aria-disabled element unless forced.
+  await control.click({ force: true });
+  await expect(page).toHaveURL(new RegExp(`/orgs/${ORG}/members/users/${ADMIN.username}$`));
+});

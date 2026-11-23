@@ -62,3 +62,12 @@ export function permissionsHref(org: string, target: AclTarget): string {
     ? `${base}/organization`
     : `${base}/${target.kind}/${encodeURIComponent(target.name)}`;
 }
+
+/**
+ * Why a target's Permissions button is disabled. Reading an ACL needs grant on
+ * the target, so a viewer without it would only reach a 403.
+ */
+export function permissionsDeniedText(target: AclTarget): string {
+  const noun = target.kind === "organization" ? "organization" : KIND_LABELS[target.kind].toLowerCase();
+  return `You need grant permission on this ${noun} to view or change its permissions.`;
+}
