@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.14.0 - 2026-11-23
+
+### Merged pull requests
+
+- Disable the Permissions button without grant (#174)
+- Optionally delete a node's client when deleting the node (#172)
+- Add a policy groups view (#173)
+- Document the full first-run setup against cinc-server-ng (#171)
+
 ## 0.13.0 - 2026-11-22
 
 ### Merged pull requests
