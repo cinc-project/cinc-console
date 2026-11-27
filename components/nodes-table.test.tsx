@@ -1,8 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { axe } from "@/test/axe";
 import userEvent from "@testing-library/user-event";
 import { NodesTable } from "./nodes-table";
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push, refresh: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
 import type { NodeSummary } from "@/lib/cinc/fleet";
 
 function node(over: Partial<NodeSummary>): NodeSummary {
@@ -30,6 +37,7 @@ const many = (n: number): NodeSummary[] =>
 const base = {
   basePath: "/orgs/acme/nodes",
   createHref: "/orgs/acme/nodes/new",
+  bootstrapHref: "/orgs/acme/nodes/bootstrap",
   generatedAt: 1_700_000_000_000,
 };
 
@@ -66,7 +74,7 @@ describe("NodesTable", () => {
         nodes={[node({ name: "web" }), node({ name: "app" }), node({ name: "db" })]}
       />,
     );
-    // Scope to the table so the header's "New" link doesn't count.
+    // Scope to the table so the header's links don't count.
     const table = screen.getByRole("table");
     const names = within(table)
       .getAllByRole("link")
@@ -98,6 +106,32 @@ describe("NodesTable", () => {
     expect(
       screen.getByRole("link", { name: "Or create a node record by hand" }),
     ).toHaveAttribute("href", "/orgs/acme/nodes/new");
+  });
+
+  it("leads the empty state with Bootstrap a node", () => {
+    render(<NodesTable {...base} nodes={[]} />);
+    expect(screen.getByRole("link", { name: "Bootstrap a node" })).toHaveAttribute(
+      "href",
+      "/orgs/acme/nodes/bootstrap",
+    );
+  });
+
+  it("makes Bootstrap a node the header's primary action", () => {
+    render(<NodesTable {...base} nodes={[node({ name: "web" })]} />);
+    expect(screen.getByRole("link", { name: "Bootstrap a node" })).toHaveAttribute(
+      "href",
+      "/orgs/acme/nodes/bootstrap",
+    );
+  });
+
+  it("keeps Create node only behind the more menu", async () => {
+    push.mockClear();
+    render(<NodesTable {...base} nodes={[node({ name: "web" })]} />);
+    await userEvent.click(screen.getByRole("button", { name: "More ways to add a node" }));
+    const item = screen.getByRole("button", { name: /Create node only/ });
+    expect(item).toHaveTextContent("Just the node object, no client or key. For your own automation.");
+    await userEvent.click(item);
+    expect(push).toHaveBeenCalledWith("/orgs/acme/nodes/new");
   });
 
   it("has no axe violations when empty", async () => {

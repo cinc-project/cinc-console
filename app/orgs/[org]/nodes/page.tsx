@@ -35,6 +35,7 @@ export default async function NodesPage({
       <NodesTable
         basePath={base}
         createHref={`${base}/new`}
+        bootstrapHref={`${base}/bootstrap`}
         nodes={res.data.nodes}
         generatedAt={res.data.generatedAt}
       />

@@ -52,3 +52,9 @@ test("key names allow colons and dots, like the server", () => {
   expect(nameError("key", "laptop:2026.11")).toBeNull();
   expect(nameError("key", "my key")).toBe("Use only letters, numbers, and . : _ -.");
 });
+
+test("policy group and policy names allow dots and colons", () => {
+  expect(nameError("policy_group", "prod")).toBeNull();
+  expect(nameError("policy_name", "web-app.v2")).toBeNull();
+  expect(nameError("policy_name", "web app")).not.toBeNull();
+});
