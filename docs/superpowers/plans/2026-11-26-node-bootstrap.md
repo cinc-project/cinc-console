@@ -20,7 +20,7 @@
 - The private key is never logged, persisted, or sent anywhere but the browser that created it.
 - WCAG 2.2 AA: path cards are `<button aria-pressed>`, status via `role="status"`, warnings icon + text, `prefers-reduced-motion` respected, everything keyboard-operable.
 - Server-side tests start with `// @vitest-environment node`; mock `"use server"` imports with `vi.hoisted`.
-- Run `make check` before each commit. Commit messages credit only the author (no Claude/AI trailers or mentions).
+- Run `make check` before each commit.
 
 ## Review Focus
 
