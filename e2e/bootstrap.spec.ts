@@ -18,7 +18,7 @@ test("an admin creates a client for a paste-in Policyfile bootstrap", async ({
 
   await page.getByRole("button", { name: /I'm on the machine/ }).click();
   await page.getByLabel("Name").fill(name);
-  await page.getByLabel("Set it up like").selectOption("seed-policy01");
+  await page.getByLabel("Copy from a node").selectOption("seed-policy01");
   await page.getByRole("button", { name: "Create client and show script" }).click();
 
   const script = page.getByLabel("Bootstrap script");
@@ -58,11 +58,19 @@ test("the SSH path shows the Cinc CLI command and creates nothing", async ({ pag
   await page.getByRole("button", { name: /I can SSH to it/ }).click();
   await page.getByLabel("Name").fill(name);
   await page.getByLabel("Host or IP").fill("10.0.0.5");
-  await page.getByLabel("Set it up like").selectOption("seed-web01");
+  await page.getByLabel("Copy from a node").selectOption("seed-web01");
   const cmd = page.getByLabel("Bootstrap command");
   await expect(cmd).toContainText(`cinc node bootstrap 10.0.0.5 --ssh-user USER --node-name ${name}`);
   await expect(cmd).toContainText("--environment _default --run-list 'role[base]'");
   await expect(cmd).not.toContainText("knife");
+
+  // Switching to Policyfile lists the policies pinned in the group, with
+  // their revisions, and drops the environment from the command.
+  await page.getByRole("radio", { name: /Policyfile/ }).check();
+  await expect(page.getByRole("radio", { name: /web-app/ })).toBeChecked();
+  await expect(page.getByText("1.0.0")).toBeVisible();
+  await expect(cmd).toContainText("--policy-group production --policy-name web-app");
+  await expect(cmd).not.toContainText("--environment");
 
   await page.goto(`/orgs/${ORG}/clients`);
   await expect(page.getByRole("link", { name })).toHaveCount(0);

@@ -2,23 +2,24 @@
 
 import { useId, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { IconWarning } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 import type { BootstrapTemplate } from "@/lib/bootstrap/templates";
+import { RunListEditor } from "./run-list-editor";
 
-/** The hand-picked settings behind "Choose manually". */
-export type ManualSettings = {
+/**
+ * What the user is editing. Both modes' values are kept, so switching modes
+ * and back loses nothing; only the chosen mode's half becomes the settings.
+ */
+export type Draft = {
   mode: "roles" | "policy";
   environment: string;
-  /** Picked roles, when the roles list loaded. */
-  roles: string[];
-  /** Comma-separated run list, when it didn't. */
-  runListText: string;
+  runList: string[];
   policyGroup: string;
   policyName: string;
 };
 
-export const MANUAL = "manual";
+export type PolicyGroupOption = { name: string; policies: { name: string; revision: string }[] };
 
 const selectClass =
   "w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50";
@@ -55,41 +56,43 @@ function Field({
   );
 }
 
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
+/** A native radio dressed as a card; the whole card is its label. */
+function RadioCard({
+  name,
+  checked,
   onChange,
   disabled,
+  title,
+  children,
 }: {
-  label: string;
-  value: T;
-  options: { id: T; label: string }[];
-  onChange: (v: T) => void;
+  name: string;
+  checked: boolean;
+  onChange: () => void;
   disabled?: boolean;
+  title: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="inline-flex gap-1 rounded-md border border-border bg-bg p-1"
+    <label
+      className={cn(
+        "flex cursor-pointer gap-3 rounded-lg border-2 p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
+        checked ? "border-link bg-surface-2" : "border-border hover:border-muted",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
     >
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          aria-pressed={value === o.id}
-          disabled={disabled}
-          onClick={() => onChange(o.id)}
-          className={cn(
-            "min-h-9 rounded px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-            value === o.id ? "bg-primary text-primary-foreground" : "text-muted hover:text-text",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+      <input
+        type="radio"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className="mt-1 h-4 w-4 shrink-0 accent-[var(--primary)] focus-visible:outline-none"
+      />
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="font-medium text-text">{title}</span>
+        {children && <span className="text-sm text-muted">{children}</span>}
+      </span>
+    </label>
   );
 }
 
@@ -102,16 +105,16 @@ export function NodeSettings({
   host,
   onHost,
   templates,
-  templateKey,
-  onTemplate,
-  summary,
-  settingsError,
-  modeLabel,
-  manual,
-  onManual,
+  copiedFrom,
+  onCopy,
+  draft,
+  onDraft,
   environments,
   roles,
+  cookbooks,
   policyGroups,
+  summary,
+  settingsError,
 }: {
   path: "ssh" | "paste";
   /** After the client is created, the settings are baked into the script. */
@@ -122,35 +125,33 @@ export function NodeSettings({
   host: string;
   onHost: (v: string) => void;
   templates: BootstrapTemplate[];
-  templateKey: string;
-  onTemplate: (v: string) => void;
+  copiedFrom: string;
+  onCopy: (node: string) => void;
+  draft: Draft;
+  onDraft: (patch: Partial<Draft>) => void;
+  environments: string[] | null;
+  roles: string[] | null;
+  cookbooks: string[] | null;
+  policyGroups: PolicyGroupOption[] | null;
   summary: string;
   /** Shown instead of the summary while the settings can't be used. */
   settingsError: string | null;
-  modeLabel: string;
-  manual: ManualSettings;
-  onManual: (patch: Partial<ManualSettings>) => void;
-  environments: string[] | null;
-  roles: string[] | null;
-  policyGroups: { name: string; policies: string[] }[] | null;
 }) {
   const id = useId();
   const roleTemplates = templates.filter((t) => t.settings.mode === "roles");
   const policyTemplates = templates.filter((t) => t.settings.mode === "policy");
   const pinnedGroups = (policyGroups ?? []).filter((g) => g.policies.length > 0);
-  const policiesInGroup = pinnedGroups.find((g) => g.name === manual.policyGroup)?.policies ?? [];
+  const policiesInGroup = pinnedGroups.find((g) => g.name === draft.policyGroup)?.policies ?? [];
   const envOptions = ["_default", ...(environments ?? []).filter((e) => e !== "_default")];
+  const shownName = name.trim() || "this node";
 
   return (
-    <section
-      aria-labelledby={`${id}-heading`}
-      className="space-y-5 rounded-lg border border-border bg-surface p-5"
-    >
+    <section aria-labelledby={`${id}-heading`} className="space-y-6 rounded-lg border border-border bg-surface p-5">
       <h2 id={`${id}-heading`} className="text-base font-semibold">
         About the node
       </h2>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field
           id={`${id}-name`}
           label="Name"
@@ -169,9 +170,8 @@ export function NodeSettings({
             aria-describedby={nameError ? `${id}-name-error` : `${id}-name-hint`}
           />
         </Field>
-
         {path === "ssh" && (
-          <Field id={`${id}-host`} label="Host or IP" hint="Leave empty to fill it in yourself.">
+          <Field id={`${id}-host`} label="Host or IP" hint="Leave empty to use the name.">
             <Input
               id={`${id}-host`}
               value={host}
@@ -183,209 +183,199 @@ export function NodeSettings({
             />
           </Field>
         )}
-
-        <Field id={`${id}-like`} label="Set it up like">
-          <select
-            id={`${id}-like`}
-            value={templateKey}
-            onChange={(e) => onTemplate(e.target.value)}
-            disabled={locked}
-            className={selectClass}
-          >
-            {roleTemplates.length > 0 && (
-              <optgroup label="Roles + environment">
-                {roleTemplates.map((t) => (
-                  <option key={t.node} value={t.node}>
-                    {t.node}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {policyTemplates.length > 0 && (
-              <optgroup label="Policyfile">
-                {policyTemplates.map((t) => (
-                  <option key={t.node} value={t.node}>
-                    {t.node}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <option value={MANUAL}>Choose manually</option>
-          </select>
-        </Field>
       </div>
 
-      {templateKey === MANUAL && (
-        <div className="space-y-4 rounded-md border border-border p-4">
-          <Segmented
-            label="Configured with"
-            value={manual.mode}
-            disabled={locked}
-            onChange={(mode) => onManual({ mode })}
-            options={[
-              { id: "roles", label: "Roles + environment" },
-              { id: "policy", label: "Policyfile" },
-            ]}
-          />
-
-          {manual.mode === "roles" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field id={`${id}-env`} label="Environment">
-                {environments ? (
-                  <select
-                    id={`${id}-env`}
-                    value={manual.environment}
-                    onChange={(e) => onManual({ environment: e.target.value })}
-                    disabled={locked}
-                    className={selectClass}
-                  >
-                    {envOptions.map((e) => (
-                      <option key={e} value={e}>
-                        {e}
+      <div className="space-y-4 border-t border-border pt-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="text-base font-semibold">
+            What should <span className="font-mono">{shownName}</span> run?
+          </h3>
+          {templates.length > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <label htmlFor={`${id}-copy`} className="whitespace-nowrap text-sm text-muted">
+                Copy from a node
+              </label>
+              <select
+                id={`${id}-copy`}
+                value={copiedFrom}
+                onChange={(e) => onCopy(e.target.value)}
+                disabled={locked}
+                className={cn(selectClass, "w-48")}
+              >
+                <option value="">Choose…</option>
+                {roleTemplates.length > 0 && (
+                  <optgroup label="Roles + environment">
+                    {roleTemplates.map((t) => (
+                      <option key={t.node} value={t.node}>
+                        {t.node}
                       </option>
                     ))}
-                  </select>
-                ) : (
-                  <Input
-                    id={`${id}-env`}
-                    value={manual.environment}
-                    onChange={(e) => onManual({ environment: e.target.value })}
-                    disabled={locked}
-                    className="font-mono"
-                  />
+                  </optgroup>
                 )}
-              </Field>
-              {roles ? (
-                <fieldset className="space-y-1">
-                  <legend className="text-sm text-muted">Roles</legend>
-                  {roles.length === 0 ? (
-                    <p className="text-sm text-muted">No roles yet: the node starts with an empty run list.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-x-4 gap-y-2">
-                      {roles.map((r) => (
-                        <label key={r} className="inline-flex min-h-9 items-center gap-2 font-mono text-sm">
-                          <input
-                            type="checkbox"
-                            checked={manual.roles.includes(r)}
-                            disabled={locked}
-                            onChange={(e) =>
-                              onManual({
-                                roles: e.target.checked
-                                  ? [...manual.roles, r]
-                                  : manual.roles.filter((x) => x !== r),
-                              })
-                            }
-                            className="h-4 w-4 accent-[var(--primary)]"
-                          />
-                          {r}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </fieldset>
-              ) : (
-                <Field
-                  id={`${id}-runlist`}
-                  label="Run list"
-                  hint="Comma-separated, e.g. role[base], recipe[apt]"
-                >
-                  <Input
-                    id={`${id}-runlist`}
-                    value={manual.runListText}
-                    onChange={(e) => onManual({ runListText: e.target.value })}
-                    disabled={locked}
-                    className="font-mono"
-                  />
-                </Field>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {policyGroups !== null && pinnedGroups.length === 0 && (
-                <p className="text-sm text-muted">
-                  No policy is pinned to a policy group yet. Push one with{" "}
-                  <code className="font-mono">cinc policy push GROUP</code>, or type the names.
-                </p>
-              )}
-              <p className="text-xs text-muted">
-                Policyfile nodes have no environment or run list. The policy group picks the
-                revision they run.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field id={`${id}-group`} label="Policy group">
-                  {pinnedGroups.length > 0 ? (
-                    <select
-                      id={`${id}-group`}
-                      value={manual.policyGroup}
-                      onChange={(e) => {
-                        const g = pinnedGroups.find((x) => x.name === e.target.value);
-                        onManual({ policyGroup: e.target.value, policyName: g?.policies[0] ?? "" });
-                      }}
-                      disabled={locked}
-                      className={selectClass}
-                    >
-                      {pinnedGroups.map((g) => (
-                        <option key={g.name} value={g.name}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      id={`${id}-group`}
-                      value={manual.policyGroup}
-                      onChange={(e) => onManual({ policyGroup: e.target.value })}
-                      disabled={locked}
-                      className="font-mono"
-                    />
-                  )}
-                </Field>
-                <Field id={`${id}-policy`} label="Policy">
-                  {pinnedGroups.length > 0 ? (
-                    <select
-                      id={`${id}-policy`}
-                      value={manual.policyName}
-                      onChange={(e) => onManual({ policyName: e.target.value })}
-                      disabled={locked}
-                      className={selectClass}
-                    >
-                      {policiesInGroup.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      id={`${id}-policy`}
-                      value={manual.policyName}
-                      onChange={(e) => onManual({ policyName: e.target.value })}
-                      disabled={locked}
-                      className="font-mono"
-                    />
-                  )}
-                </Field>
-              </div>
+                {policyTemplates.length > 0 && (
+                  <optgroup label="Policyfile">
+                    {policyTemplates.map((t) => (
+                      <option key={t.node} value={t.node}>
+                        {t.node}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
             </div>
           )}
         </div>
-      )}
+        {copiedFrom && (
+          <p role="status" className="text-sm text-muted">
+            Copied from <span className="font-mono text-text">{copiedFrom}</span>. Change anything
+            below; the copy is only a starting point.
+          </p>
+        )}
 
-      {settingsError ? (
-        <p role="alert" className="flex items-center gap-2 text-sm text-danger">
-          <span aria-hidden="true">
-            <IconWarning />
-          </span>
-          {settingsError}
-        </p>
-      ) : (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          <span className="rounded-full border border-border px-2 py-0.5 text-xs text-text">
-            {modeLabel}
-          </span>
-          Gets <span className="font-mono text-text">{summary}</span>
-        </p>
-      )}
+        <fieldset className="grid gap-3 sm:grid-cols-2">
+          <legend className="sr-only">How this node is managed</legend>
+          <RadioCard
+            name={`${id}-mode`}
+            checked={draft.mode === "roles"}
+            onChange={() => onDraft({ mode: "roles" })}
+            disabled={locked}
+            title="Roles + environment"
+          >
+            An ordered run list of roles and recipes, in an environment.
+          </RadioCard>
+          <RadioCard
+            name={`${id}-mode`}
+            checked={draft.mode === "policy"}
+            onChange={() => onDraft({ mode: "policy" })}
+            disabled={locked}
+            title="Policyfile"
+          >
+            A policy pinned to a policy group. No environment or run list.
+          </RadioCard>
+        </fieldset>
+
+        {draft.mode === "roles" ? (
+          <div className="grid gap-5 sm:grid-cols-[14rem_minmax(0,1fr)]">
+            <Field id={`${id}-env`} label="Environment">
+              {environments ? (
+                <select
+                  id={`${id}-env`}
+                  value={draft.environment}
+                  onChange={(e) => onDraft({ environment: e.target.value })}
+                  disabled={locked}
+                  className={selectClass}
+                >
+                  {envOptions.map((e) => (
+                    <option key={e} value={e}>
+                      {e}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id={`${id}-env`}
+                  value={draft.environment}
+                  onChange={(e) => onDraft({ environment: e.target.value })}
+                  disabled={locked}
+                  className="font-mono"
+                />
+              )}
+            </Field>
+            <RunListEditor
+              entries={draft.runList}
+              onChange={(runList) => onDraft({ runList })}
+              roles={roles}
+              cookbooks={cookbooks}
+              disabled={locked}
+            />
+          </div>
+        ) : pinnedGroups.length > 0 ? (
+          <div className="grid gap-5 sm:grid-cols-[14rem_minmax(0,1fr)]">
+            <Field id={`${id}-group`} label="Policy group" hint="Takes the place of an environment.">
+              <select
+                id={`${id}-group`}
+                value={draft.policyGroup}
+                onChange={(e) => {
+                  const g = pinnedGroups.find((x) => x.name === e.target.value);
+                  onDraft({ policyGroup: e.target.value, policyName: g?.policies[0]?.name ?? "" });
+                }}
+                disabled={locked}
+                className={selectClass}
+              >
+                {pinnedGroups.map((g) => (
+                  <option key={g.name} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <fieldset className="space-y-2">
+              <legend className="text-sm text-muted">
+                Policy <span className="text-xs">· pinned in {draft.policyGroup}</span>
+              </legend>
+              {policiesInGroup.map((p) => (
+                <RadioCard
+                  key={p.name}
+                  name={`${id}-policy`}
+                  checked={draft.policyName === p.name}
+                  onChange={() => onDraft({ policyName: p.name })}
+                  disabled={locked}
+                  title={
+                    <span className="flex flex-wrap items-baseline gap-x-3">
+                      <span className="font-mono">{p.name}</span>
+                      <span className="text-xs font-normal text-muted">
+                        revision <span className="font-mono">{p.revision.slice(0, 12)}</span>
+                      </span>
+                    </span>
+                  }
+                />
+              ))}
+            </fieldset>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {policyGroups !== null && (
+              <p className="text-sm text-muted">
+                No policy is pinned to a policy group yet. Push one with{" "}
+                <code className="font-mono">cinc policy push GROUP</code>, or type the names.
+              </p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id={`${id}-group`} label="Policy group">
+                <Input
+                  id={`${id}-group`}
+                  value={draft.policyGroup}
+                  onChange={(e) => onDraft({ policyGroup: e.target.value })}
+                  disabled={locked}
+                  className="font-mono"
+                />
+              </Field>
+              <Field id={`${id}-policy`} label="Policy">
+                <Input
+                  id={`${id}-policy`}
+                  value={draft.policyName}
+                  onChange={(e) => onDraft({ policyName: e.target.value })}
+                  disabled={locked}
+                  className="font-mono"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {settingsError ? (
+          <p role="alert" className="flex items-center gap-2 text-sm text-danger">
+            <span aria-hidden="true">
+              <IconWarning />
+            </span>
+            {settingsError}
+          </p>
+        ) : (
+          <p className="border-t border-border pt-4 text-sm text-muted">
+            First run: <span className="font-mono text-text">{summary}</span>
+          </p>
+        )}
+      </div>
     </section>
   );
 }

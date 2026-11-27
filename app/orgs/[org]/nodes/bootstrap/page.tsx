@@ -3,7 +3,7 @@ import { currentUser } from "@/lib/guard";
 import { getConfig } from "@/lib/config";
 import { safeGet } from "@/lib/cinc/safe-get";
 import { makeResource } from "@/lib/cinc/resource";
-import { clients } from "@/lib/cinc/readonly";
+import { clients, cookbooks } from "@/lib/cinc/readonly";
 import { fetchFleetNodes } from "@/lib/cinc/search";
 import { listPolicyGroups } from "@/lib/cinc/policy-groups";
 import { PageHeader } from "@/components/ui/page-header";
@@ -28,11 +28,12 @@ export default async function BootstrapNodePage({
 
   // Each list degrades on its own: a read the user can't do turns its picker
   // into a free-text field rather than failing the page.
-  const [fleet, clientList, envs, roleList, groups] = await Promise.all([
+  const [fleet, clientList, envs, roleList, cookbookList, groups] = await Promise.all([
     safeGet(() => fetchFleetNodes(user, org)),
     safeGet(() => clients.list(user, org)),
     safeGet(() => environments.list(user, org)),
     safeGet(() => roles.list(user, org)),
+    safeGet(() => cookbooks.list(user, org)),
     safeGet(() => listPolicyGroups(user, org)),
   ]);
   const fleetNodes = "data" in fleet ? fleet.data : [];
@@ -56,9 +57,13 @@ export default async function BootstrapNodePage({
         existingClients={names(clientList) ?? []}
         environments={names(envs)}
         roles={names(roleList)}
+        cookbooks={names(cookbookList)}
         policyGroups={
           "data" in groups
-            ? groups.data.map((g) => ({ name: g.name, policies: g.policies.map((p) => p.policy) }))
+            ? groups.data.map((g) => ({
+                name: g.name,
+                policies: g.policies.map((p) => ({ name: p.policy, revision: p.revision })),
+              }))
             : null
         }
         onCreate={createBootstrapClient.bind(null, org)}

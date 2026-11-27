@@ -29,7 +29,8 @@ beforeEach(() => {
     existingClients: ["ci"],
     environments: ["production"],
     roles: ["base", "web"],
-    policyGroups: [{ name: "production", policies: ["web-app"] }],
+    cookbooks: ["apt"],
+    policyGroups: [{ name: "production", policies: [{ name: "web-app", revision: "1.0.0" }] }],
     onCreate: vi.fn(async () => ({ ok: true as const, privateKey: "-----BEGIN RSA PRIVATE KEY-----\nKEYDATA\n-----END RSA PRIVATE KEY-----\n" })),
     onDiscard: vi.fn(async () => ({ ok: true as const })),
     onCheckIn: vi.fn(async () => ({ state: "waiting" as const })),
@@ -57,18 +58,46 @@ describe("BootstrapFlow", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 
-  it("builds the Cinc CLI command from the chosen template", async () => {
+  it("starts from an empty run list in _default, not a copied node", async () => {
     render(<BootstrapFlow {...props} />);
     await pick("I can SSH to it");
     await typeName("web02");
-    await userEvent.selectOptions(screen.getByLabelText("Set it up like"), "seed-web01");
+    expect(screen.getByRole("radio", { name: /Roles \+ environment/ })).toBeChecked();
     const cmd = screen.getByLabelText("Bootstrap command");
-    expect(cmd).toHaveTextContent("--node-name web02");
+    expect(cmd).toHaveTextContent("--environment _default");
+    expect(cmd).not.toHaveTextContent("--run-list");
+  });
+
+  it("copies a node's settings into the fields, which stay editable", async () => {
+    render(<BootstrapFlow {...props} />);
+    await pick("I can SSH to it");
+    await typeName("web02");
+    await userEvent.selectOptions(screen.getByLabelText("Copy from a node"), "seed-web01");
+    expect(screen.getByRole("status")).toHaveTextContent("Copied from seed-web01.");
+    const cmd = screen.getByLabelText("Bootstrap command");
     expect(cmd).toHaveTextContent("--environment _default --run-list 'role[base]'");
 
-    await userEvent.selectOptions(screen.getByLabelText("Set it up like"), "seed-policy01");
+    await userEvent.type(screen.getByLabelText("Add a role or recipe"), "web{Enter}");
+    expect(cmd).toHaveTextContent("--run-list 'role[base],role[web]'");
+
+    await userEvent.selectOptions(screen.getByLabelText("Copy from a node"), "seed-policy01");
+    expect(screen.getByRole("radio", { name: /Policyfile/ })).toBeChecked();
     expect(cmd).toHaveTextContent("--policy-group production --policy-name web-app");
     expect(cmd).not.toHaveTextContent("--environment");
+  });
+
+  it("always shows the mode choice, and lists pinned policies with their revisions", async () => {
+    render(<BootstrapFlow {...props} />);
+    await pick("I can SSH to it");
+    await typeName("web02");
+    await userEvent.click(screen.getByRole("radio", { name: /Policyfile/ }));
+    const policy = screen.getByRole("radio", { name: /web-app/ });
+    expect(policy).toBeChecked();
+    expect(policy.closest("label")).toHaveTextContent("1.0.0");
+    expect(screen.queryByLabelText("Environment")).toBeNull();
+    expect(screen.getByLabelText("Bootstrap command")).toHaveTextContent(
+      "--policy-group production --policy-name web-app",
+    );
   });
 
   it("creates the client and shows the paste script, then discards it", async () => {
@@ -120,8 +149,7 @@ describe("BootstrapFlow", () => {
     props.policyGroups = [];
     render(<BootstrapFlow {...props} />);
     await pick("I can SSH to it");
-    await userEvent.selectOptions(screen.getByLabelText("Set it up like"), "manual");
-    await userEvent.click(screen.getByRole("button", { name: "Policyfile" }));
+    await userEvent.click(screen.getByRole("radio", { name: /Policyfile/ }));
     expect(screen.getByText(/No policy is pinned to a policy group yet/)).toBeInTheDocument();
     expect(screen.getByLabelText("Policy group")).toBeInTheDocument();
   });
@@ -130,7 +158,6 @@ describe("BootstrapFlow", () => {
     props.environments = null;
     render(<BootstrapFlow {...props} />);
     await pick("I can SSH to it");
-    await userEvent.selectOptions(screen.getByLabelText("Set it up like"), "manual");
     expect(screen.getByLabelText("Environment").tagName).toBe("INPUT");
   });
 
@@ -180,8 +207,7 @@ describe("BootstrapFlow", () => {
     render(<BootstrapFlow {...props} />);
     await pick("I can SSH to it");
     await typeName("web02");
-    await userEvent.selectOptions(screen.getByLabelText("Set it up like"), "manual");
-    await userEvent.click(screen.getByRole("button", { name: "Policyfile" }));
+    await userEvent.click(screen.getByRole("radio", { name: /Policyfile/ }));
     expect(screen.getByRole("alert")).toHaveTextContent("Choose a policy group.");
     expect(screen.queryByText(/Gets/)).toBeNull();
     expect(screen.getByText("Fix the settings above to see the command.")).toBeInTheDocument();
