@@ -34,8 +34,16 @@ export function runListEntryError(entry: string): string | null {
     : `"${entry}" isn't a run-list entry. Use role[NAME] or recipe[COOKBOOK].`;
 }
 
-/** The first problem with `s`, or null. `_default` is a valid environment here. */
+const untrimmed = (v: string) => v !== v.trim();
+
+/**
+ * The first problem with `s`, or null. `_default` is a valid environment here.
+ * Values must already be trimmed: they land verbatim in a shell command and
+ * in first-boot.json, and nameError alone tolerates surrounding whitespace.
+ */
 export function settingsError(s: BootstrapSettings): string | null {
+  const values = s.mode === "roles" ? [s.environment] : [s.policyGroup, s.policyName];
+  if (values.some(untrimmed)) return "Remove the spaces around the name.";
   if (s.mode === "roles") {
     if (!s.environment) return "Choose an environment.";
     if (s.environment !== "_default") {

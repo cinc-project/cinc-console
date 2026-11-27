@@ -70,4 +70,10 @@ describe("settingsError", () => {
   it("rejects a malformed policy name", () => {
     expect(settingsError({ mode: "policy", policyGroup: "prod", policyName: "a b" })).not.toBeNull();
   });
+
+  it("rejects values with surrounding whitespace", () => {
+    expect(settingsError({ mode: "roles", environment: "prod ", runList: [] })).not.toBeNull();
+    expect(settingsError({ mode: "policy", policyGroup: "prod\n", policyName: "web" })).not.toBeNull();
+    expect(settingsError({ mode: "policy", policyGroup: "prod", policyName: " web" })).not.toBeNull();
+  });
 });

@@ -136,4 +136,41 @@ describe("bootstrapCliCommand", () => {
       })[0],
     ).toMatch(/^cinc node bootstrap HOST /);
   });
+
+  it("never passes a value with surrounding whitespace or newlines into the command", () => {
+    expect(() =>
+      bootstrapCliCommand({
+        host: "h",
+        nodeName: "web01",
+        settings: { mode: "policy", policyGroup: "prod\n", policyName: "media" },
+      }),
+    ).toThrow();
+    expect(() =>
+      bootstrapCliCommand({
+        host: "h",
+        nodeName: "web01",
+        settings: { mode: "roles", environment: " prod", runList: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("never lets a host be read as an option", () => {
+    expect(
+      bootstrapCliCommand({
+        host: "-oProxyCommand=id",
+        nodeName: "web01",
+        settings: { mode: "roles", environment: "_default", runList: [] },
+      })[0],
+    ).toMatch(/^cinc node bootstrap HOST /);
+  });
+
+  it("quotes a host with shell metacharacters", () => {
+    expect(
+      bootstrapCliCommand({
+        host: "a b;id",
+        nodeName: "web01",
+        settings: { mode: "roles", environment: "_default", runList: [] },
+      })[0],
+    ).toBe("cinc node bootstrap 'a b;id' --ssh-user USER --node-name web01");
+  });
 });

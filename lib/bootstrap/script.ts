@@ -99,7 +99,11 @@ export function bootstrapCliCommand(o: {
 }): string[] {
   validate(o.nodeName, o.settings);
   const raw = o.host.trim();
-  const host = raw === "" ? "HOST" : PLAIN_HOST.test(raw) ? raw : shellQuote(raw);
+  // A leading "-" would be read as an option even when quoted, so treat it as
+  // not filled in. Everything else after the host has passed settingsError,
+  // whose character sets contain no shell metacharacters.
+  const host =
+    raw === "" || raw.startsWith("-") ? "HOST" : PLAIN_HOST.test(raw) ? raw : shellQuote(raw);
   const first = `cinc node bootstrap ${host} --ssh-user USER --node-name ${o.nodeName}`;
   const s = o.settings;
   const second =
