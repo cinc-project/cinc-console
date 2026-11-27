@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.15.0 - 2026-11-27
+
+### Merged pull requests
+
+- Bootstrap a node from the console (#180)
+
+### Dependency updates
+
+- chore(deps): bump github/codeql-action/upload-sarif (#176)
+- chore(deps): bump undici (#177)
+- chore(deps-dev): bump @testing-library/jest-dom from 7.0.1 to 8.0.0 (#179)
+
 ## 0.14.0 - 2026-11-23
 
 ### Merged pull requests
