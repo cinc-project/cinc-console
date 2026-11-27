@@ -1,24 +1,10 @@
 "use client";
 
 import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { CommandLine } from "@/components/command-line";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/ui/copy-button";
 import { CLI_TOOLS, useCliTool, type CliTool } from "@/components/cli-tool";
-
-/** UPPER_CASE words in a command are placeholders the user fills in. */
-const PLACEHOLDER = /\b([A-Z][A-Z_]{2,})\b/g;
-
-function renderLine(line: string): ReactNode[] {
-  return line.split(PLACEHOLDER).map((part, i) =>
-    i % 2 === 1 ? (
-      <span key={i} className="font-semibold text-text">
-        {part}
-      </span>
-    ) : (
-      part
-    ),
-  );
-}
 
 /**
  * A workstation command shown for both Cinc CLI (default) and knife, with a
@@ -120,7 +106,7 @@ export function CommandSnippet({
               <span aria-hidden="true" className="select-none">
                 ${" "}
               </span>
-              <span className="text-text/90">{renderLine(line)}</span>
+              <span className="text-text/90"><CommandLine line={line} /></span>
             </span>
           ))}
         </pre>
