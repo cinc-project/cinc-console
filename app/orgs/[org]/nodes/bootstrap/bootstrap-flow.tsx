@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { bootstrapNameError, settingsError, type BootstrapSettings } from "@/lib/bootstrap/validate";
 import { bootstrapCliCommand, bootstrapScript } from "@/lib/bootstrap/script";
 import type { BootstrapTemplate } from "@/lib/bootstrap/templates";
-import { MANUAL, NodeSettings, type ManualSettings } from "./node-settings";
+import { NodeSettings, type Draft, type PolicyGroupOption } from "./node-settings";
 import { PasteOutput, SshOutput } from "./bootstrap-output";
 import { CheckInStatus, type CheckInState } from "./check-in-status";
 import type { CheckIn, CreateBootstrapClientResult } from "./actions";
@@ -23,7 +23,9 @@ export type BootstrapFlowProps = {
   /** null when the list couldn't be read: the field becomes free text. */
   environments: string[] | null;
   roles: string[] | null;
-  policyGroups: { name: string; policies: string[] }[] | null;
+  /** Cookbook names, offered as their default recipe. */
+  cookbooks: string[] | null;
+  policyGroups: PolicyGroupOption[] | null;
   onCreate: (name: string) => Promise<CreateBootstrapClientResult>;
   onDiscard: (name: string) => Promise<{ ok: true } | { error: string }>;
   onCheckIn: (name: string) => Promise<CheckIn>;
@@ -39,14 +41,11 @@ function explain(error: string, name: string): string {
   return `The Cinc server returned an error (${error}). Try again.`;
 }
 
-function manualSettings(m: ManualSettings, rolesLoaded: boolean): BootstrapSettings {
-  if (m.mode === "policy") {
-    return { mode: "policy", policyGroup: m.policyGroup.trim(), policyName: m.policyName.trim() };
-  }
-  const runList = rolesLoaded
-    ? m.roles.map((r) => `role[${r}]`)
-    : m.runListText.split(",").map((s) => s.trim()).filter(Boolean);
-  return { mode: "roles", environment: m.environment.trim(), runList };
+/** The chosen mode's half of the draft, trimmed. */
+function toSettings(d: Draft): BootstrapSettings {
+  return d.mode === "policy"
+    ? { mode: "policy", policyGroup: d.policyGroup.trim(), policyName: d.policyName.trim() }
+    : { mode: "roles", environment: d.environment.trim(), runList: d.runList };
 }
 
 function summarize(s: BootstrapSettings): string {
@@ -155,18 +154,18 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   const [path, setPath] = useState<Path | null>(null);
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
-  const [templateKey, setTemplateKey] = useState(templates[0]?.node ?? MANUAL);
-  const [manual, setManual] = useState<ManualSettings>(() => {
+  // A fresh node starts empty in _default; copying a node only fills this in.
+  const [draft, setDraft] = useState<Draft>(() => {
     const g = (props.policyGroups ?? []).find((x) => x.policies.length > 0);
     return {
       mode: "roles",
       environment: "_default",
-      roles: [],
-      runListText: "",
+      runList: [],
       policyGroup: g?.name ?? "",
-      policyName: g?.policies[0] ?? "",
+      policyName: g?.policies[0]?.name ?? "",
     };
   });
+  const [copiedFrom, setCopiedFrom] = useState("");
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [checkIn, setCheckIn] = useState<CheckInState>("waiting");
@@ -174,10 +173,19 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   const [pending, startTransition] = useTransition();
 
   const trimmed = name.trim();
-  const settings: BootstrapSettings = useMemo(() => {
-    const t = templates.find((x) => x.node === templateKey);
-    return t ? t.settings : manualSettings(manual, props.roles !== null);
-  }, [templates, templateKey, manual, props.roles]);
+  const settings = useMemo(() => toSettings(draft), [draft]);
+
+  function copyFrom(node: string) {
+    setCopiedFrom(node);
+    const t = templates.find((x) => x.node === node);
+    if (!t) return;
+    const s = t.settings;
+    setDraft((d) =>
+      s.mode === "roles"
+        ? { ...d, mode: "roles", environment: s.environment, runList: [...s.runList] }
+        : { ...d, mode: "policy", policyGroup: s.policyGroup, policyName: s.policyName },
+    );
+  }
   const settingsProblem = settingsError(settings);
 
   const nameProblem: ReactNode = useMemo(() => {
@@ -322,15 +330,15 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
             host={host}
             onHost={setHost}
             templates={templates}
-            templateKey={templateKey}
-            onTemplate={setTemplateKey}
+            copiedFrom={copiedFrom}
+            onCopy={copyFrom}
+            draft={draft}
+            onDraft={(patch) => setDraft((d) => ({ ...d, ...patch }))}
             summary={summarize(settings)}
             settingsError={settingsProblem}
-            modeLabel={settings.mode === "policy" ? "Policyfile" : "Roles + environment"}
-            manual={manual}
-            onManual={(patch) => setManual((m) => ({ ...m, ...patch }))}
             environments={props.environments}
             roles={props.roles}
+            cookbooks={props.cookbooks}
             policyGroups={props.policyGroups}
           />
 
