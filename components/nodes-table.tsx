@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Input } from "./ui/input";
-import { Button } from "./ui/button";
+import { Button, buttonClass } from "./ui/button";
+import { ActionMenu } from "./ui/action-menu";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "./ui/page-header";
 import { SortableTh } from "./ui/sortable";
 import { useSort } from "./ui/use-sort";
@@ -66,15 +68,19 @@ function compareBy(a: NodeSummary, b: NodeSummary, sort: SortState): number {
 export function NodesTable({
   basePath,
   createHref,
+  bootstrapHref,
   nodes,
   generatedAt,
 }: {
   basePath: string;
   createHref: string;
+  /** The default way to add a node: bootstrap an existing machine. */
+  bootstrapHref: string;
   nodes: NodeSummary[];
   /** Unix ms the snapshot was built — seeds the relative clock (stable for SSR). */
   generatedAt: number;
 }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const { sort, setSort, replaceSort } = useSort("sort", DEFAULT_SORT, SORT_KEYS);
@@ -114,6 +120,9 @@ export function NodesTable({
           title="No nodes yet"
           actions={
             <>
+              <Link href={bootstrapHref} className={buttonClass("primary")}>
+                Bootstrap a node
+              </Link>
               <CommandSnippet
                 commands={{
                   cinc: ["cinc node bootstrap HOST --ssh-user USER --node-name NAME"],
@@ -153,9 +162,22 @@ export function NodesTable({
       <PageHeader
         title="Nodes"
         actions={
-          <Link href={createHref}>
-            <Button>New</Button>
-          </Link>
+          <>
+            <Link href={bootstrapHref} className={buttonClass("primary")}>
+              Bootstrap a node
+            </Link>
+            <ActionMenu
+              label="More ways to add a node"
+              variant="secondary"
+              items={[
+                {
+                  label: "Create node only",
+                  hint: "Just the node object, no client or key. For your own automation.",
+                  onSelect: () => router.push(createHref),
+                },
+              ]}
+            />
+          </>
         }
       />
 
