@@ -29,6 +29,8 @@ export type BootstrapFlowProps = {
   onCheckIn: (name: string) => Promise<CheckIn>;
 };
 
+const UNREACHABLE = "Couldn't reach the console. Check your connection and try again.";
+
 function explain(error: string, name: string): string {
   if (error === "forbidden") return "You don't have permission to create clients in this organization.";
   if (error === "node exists") return `A node named ${name} already exists.`;
@@ -183,7 +185,11 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   const ready = trimmed !== "" && !nameProblem && !settingsProblem;
 
   const cliLines = useMemo(
-    () => (ready ? bootstrapCliCommand({ host, nodeName: trimmed, settings }) : null),
+    // An empty host targets the node name, the usual case of name = hostname.
+    () =>
+      ready
+        ? bootstrapCliCommand({ host: host.trim() || trimmed, nodeName: trimmed, settings })
+        : null,
     [ready, host, trimmed, settings],
   );
   const script = useMemo(
@@ -200,6 +206,10 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   );
 
   const onState = useCallback((s: CheckInState) => setCheckIn(s), []);
+  // Focus moves to the watch status once, when "I've run it" replaces itself
+  // with it; a later remount (the name was edited) must not steal focus.
+  const [focusWatch, setFocusWatch] = useState(false);
+  const onWatchFocused = useCallback(() => setFocusWatch(false), []);
 
   function choosePath(p: Path) {
     if (privateKey) return; // a created client pins the paste path
@@ -211,7 +221,13 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   function create() {
     setError(null);
     startTransition(async () => {
-      const res = await props.onCreate(trimmed);
+      let res: CreateBootstrapClientResult;
+      try {
+        res = await props.onCreate(trimmed);
+      } catch {
+        setError(UNREACHABLE);
+        return;
+      }
       if ("ok" in res) {
         setPrivateKey(res.privateKey);
         setCheckIn("waiting");
@@ -225,7 +241,13 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
   function discard() {
     setError(null);
     startTransition(async () => {
-      const res = await props.onDiscard(trimmed);
+      let res: { ok: true } | { error: string };
+      try {
+        res = await props.onDiscard(trimmed);
+      } catch {
+        setError(UNREACHABLE);
+        return;
+      }
       if ("ok" in res) {
         setPrivateKey(null);
         setWatching(false);
@@ -274,7 +296,8 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
             templates={templates}
             templateKey={templateKey}
             onTemplate={setTemplateKey}
-            summary={settingsProblem ?? summarize(settings)}
+            summary={summarize(settings)}
+            settingsError={settingsProblem}
             modeLabel={settings.mode === "policy" ? "Policyfile" : "Roles + environment"}
             manual={manual}
             onManual={(patch) => setManual((m) => ({ ...m, ...patch }))}
@@ -285,7 +308,16 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
 
           <section aria-label="Bootstrap" className="space-y-4">
             {path === "ssh" ? (
-              <SshOutput lines={cliLines} watching={watching} onWatch={() => setWatching(true)} />
+              <SshOutput
+                lines={cliLines}
+                missing={ready ? null : nameProblem || !trimmed ? "name" : "settings"}
+                serverUrl={props.serverUrl}
+                watching={watching}
+                onWatch={() => {
+                  setWatching(true);
+                  setFocusWatch(true);
+                }}
+              />
             ) : (
               <PasteOutput
                 name={trimmed}
@@ -298,8 +330,18 @@ export function BootstrapFlow(props: BootstrapFlowProps) {
                 onDiscard={discard}
               />
             )}
-            {watching && trimmed && (
-              <CheckInStatus org={org} name={trimmed} check={props.onCheckIn} onState={onState} />
+            {watching && trimmed && !nameProblem && (
+              // Keyed by name: an edited name starts a fresh watch, never
+              // showing the previous name's result.
+              <CheckInStatus
+                key={trimmed}
+                org={org}
+                name={trimmed}
+                check={props.onCheckIn}
+                onState={onState}
+                focusOnMount={focusWatch}
+                onFocused={onWatchFocused}
+              />
             )}
           </section>
         </>

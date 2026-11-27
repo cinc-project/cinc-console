@@ -3,6 +3,7 @@
 import { useId, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { IconWarning } from "@/components/ui/icons";
 import type { BootstrapTemplate } from "@/lib/bootstrap/templates";
 
 /** The hand-picked settings behind "Choose manually". */
@@ -46,7 +47,9 @@ function Field({
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-muted">{hint}</p>
+        <p id={`${id}-hint`} className="text-xs text-muted">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
@@ -102,6 +105,7 @@ export function NodeSettings({
   templateKey,
   onTemplate,
   summary,
+  settingsError,
   modeLabel,
   manual,
   onManual,
@@ -121,6 +125,8 @@ export function NodeSettings({
   templateKey: string;
   onTemplate: (v: string) => void;
   summary: string;
+  /** Shown instead of the summary while the settings can't be used. */
+  settingsError: string | null;
   modeLabel: string;
   manual: ManualSettings;
   onManual: (patch: Partial<ManualSettings>) => void;
@@ -160,7 +166,7 @@ export function NodeSettings({
             spellCheck={false}
             className="font-mono"
             aria-invalid={nameError ? true : undefined}
-            aria-describedby={nameError ? `${id}-name-error` : undefined}
+            aria-describedby={nameError ? `${id}-name-error` : `${id}-name-hint`}
           />
         </Field>
 
@@ -365,12 +371,21 @@ export function NodeSettings({
         </div>
       )}
 
-      <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <span className="rounded-full border border-border px-2 py-0.5 text-xs text-text">
-          {modeLabel}
-        </span>
-        Gets <span className="font-mono text-text">{summary}</span>
-      </p>
+      {settingsError ? (
+        <p role="alert" className="flex items-center gap-2 text-sm text-danger">
+          <span aria-hidden="true">
+            <IconWarning />
+          </span>
+          {settingsError}
+        </p>
+      ) : (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+          <span className="rounded-full border border-border px-2 py-0.5 text-xs text-text">
+            {modeLabel}
+          </span>
+          Gets <span className="font-mono text-text">{summary}</span>
+        </p>
+      )}
     </section>
   );
 }

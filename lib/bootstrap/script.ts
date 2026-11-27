@@ -85,7 +85,8 @@ export function bootstrapScript(o: {
   ].join("\n");
 }
 
-const PLAIN_HOST = /^[A-Za-z0-9._:@\[\]-]+$/;
+// No [ ] here: an unquoted bracketed host (e.g. [::1]) is a shell glob.
+const PLAIN_HOST = /^[A-Za-z0-9._:@-]+$/;
 
 /**
  * The `cinc node bootstrap` command for the SSH path, as display lines (the

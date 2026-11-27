@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { CommandLine } from "@/components/command-line";
@@ -36,16 +37,27 @@ function Terminal({
 /** The `cinc node bootstrap` command; nothing is created by the console. */
 export function SshOutput({
   lines,
+  missing,
+  serverUrl,
   watching,
   onWatch,
 }: {
-  /** null while the name or settings are invalid. */
+  /** null while the name or settings are invalid; `missing` says which. */
   lines: string[] | null;
+  missing: "name" | "settings" | null;
+  /** The server and org the workstation's Cinc CLI profile must target. */
+  serverUrl: string;
   watching: boolean;
   onWatch: () => void;
 }) {
   if (!lines) {
-    return <p className="text-sm text-muted">Enter a valid name to see the command.</p>;
+    return (
+      <p className="text-sm text-muted">
+        {missing === "settings"
+          ? "Fix the settings above to see the command."
+          : "Enter a valid name to see the command."}
+      </p>
+    );
   }
   // Continue the first line so the copied text runs as one command.
   const display = lines.map((l, i) => (i < lines.length - 1 ? `${l} \\` : l));
@@ -60,7 +72,9 @@ export function SshOutput({
       </Terminal>
       <p className="text-xs text-muted">
         The Cinc CLI creates the client and key, installs Cinc Client over SSH (using sudo), and
-        does the first run. First time on this workstation? Run{" "}
+        does the first run. It uses your Cinc CLI profile, which must point at{" "}
+        <code className="font-mono text-text">{serverUrl}</code>; otherwise the node lands on
+        another server or org. First time on this workstation? Run{" "}
         <code className="font-mono">cinc config create</code>.
       </p>
       {!watching && (
@@ -93,20 +107,41 @@ export function PasteOutput({
   onCreate: () => void;
   onDiscard: () => void;
 }) {
+  const warningId = useId();
+  const warningRef = useRef<HTMLDivElement>(null);
+  const createRef = useRef<HTMLButtonElement>(null);
+  const hadScript = useRef(false);
+
+  // The script replaces the Create button (and Discard the script), so move
+  // focus to what took its place rather than dropping it on <body>.
+  useEffect(() => {
+    if (script) {
+      warningRef.current?.focus();
+      hadScript.current = true;
+    } else if (hadScript.current && !pending) {
+      // Wait for the transition to settle: a disabled button can't take focus.
+      createRef.current?.focus();
+      hadScript.current = false;
+    }
+  }, [script, pending]);
+
   function download() {
     if (!script) return;
     const url = URL.createObjectURL(new Blob([script], { type: "text/x-shellscript" }));
     const a = document.createElement("a");
     a.href = url;
     a.download = `bootstrap-${name}.sh`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    // Revoking synchronously can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   if (!script) {
     return (
       <div className="space-y-2">
-        <Button onClick={onCreate} disabled={!canCreate || pending}>
+        <Button ref={createRef} onClick={onCreate} disabled={!canCreate || pending}>
           {pending ? "Creating…" : "Create client and show script"}
         </Button>
         <p className="text-xs text-muted">
@@ -127,14 +162,20 @@ export function PasteOutput({
   return (
     <div className="space-y-3">
       <div
-        role="note"
-        className="flex items-start gap-2 rounded-md border border-warn/50 bg-warn/10 p-3 text-sm"
+        ref={warningRef}
+        role="alert"
+        aria-labelledby={warningId}
+        tabIndex={-1}
+        className="flex items-start gap-2 rounded-md border border-warn/50 bg-warn/10 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span aria-hidden="true" className="mt-0.5 text-warn">
           <IconWarning />
         </span>
         <p>
-          <strong>This script contains the new client key and is shown only once.</strong> Copy
+          <strong id={warningId}>
+            This script contains the new client key and is shown only once.
+          </strong>{" "}
+          Copy
           or download it now. You can make a new key from the client page later.
         </p>
       </div>

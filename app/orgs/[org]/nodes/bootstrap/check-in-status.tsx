@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
 import { IconCheck } from "@/components/ui/icons";
@@ -22,14 +22,27 @@ export function CheckInStatus({
   name,
   check,
   onState,
+  focusOnMount = false,
+  onFocused,
 }: {
   org: string;
   name: string;
   check: (name: string) => Promise<CheckIn>;
   onState?: (state: CheckInState) => void;
+  /** Take focus when shown, e.g. when it replaces the button that started it. */
+  focusOnMount?: boolean;
+  /** Called once focus was taken, so the caller can stop asking for it. */
+  onFocused?: () => void;
 }) {
   const [result, setResult] = useState<CheckIn>({ state: "waiting" });
   const [gaveUp, setGaveUp] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!focusOnMount) return;
+    rootRef.current?.focus();
+    onFocused?.();
+  }, [focusOnMount, onFocused]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +110,10 @@ export function CheckInStatus({
 
   return (
     <div
+      ref={rootRef}
       role="status"
-      className="flex items-center gap-3 rounded-md border border-border bg-surface-2 p-3 text-sm"
+      tabIndex={-1}
+      className="flex items-center gap-3 rounded-md border border-border bg-surface-2 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       {!gaveUp && (
         <span

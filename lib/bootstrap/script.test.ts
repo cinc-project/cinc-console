@@ -173,4 +173,14 @@ describe("bootstrapCliCommand", () => {
       })[0],
     ).toBe("cinc node bootstrap 'a b;id' --ssh-user USER --node-name web01");
   });
+
+  it("quotes a bracketed host so the shell can't glob it", () => {
+    expect(
+      bootstrapCliCommand({
+        host: "[::1]",
+        nodeName: "web01",
+        settings: { mode: "roles", environment: "_default", runList: [] },
+      })[0],
+    ).toBe("cinc node bootstrap '[::1]' --ssh-user USER --node-name web01");
+  });
 });
