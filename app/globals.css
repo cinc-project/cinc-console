@@ -95,6 +95,14 @@
   }
 }
 
+/* The bootstrap page's SSH illustration: dashes marching from workstation to
+   server. Applied under `motion-safe:` only. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
