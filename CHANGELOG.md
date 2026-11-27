@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.16.0 - 2026-11-27
+
+### Merged pull requests
+
+- Make the bootstrap run list and Policyfile choice explicit (#183)
+- Match the bootstrap path illustrations to the design (#182)
+
+### Dependency updates
+
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 2 updates (#178)
+
 ## 0.15.0 - 2026-11-27
 
 ### Merged pull requests
