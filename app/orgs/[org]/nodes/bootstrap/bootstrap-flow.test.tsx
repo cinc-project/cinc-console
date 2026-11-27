@@ -285,4 +285,22 @@ describe("BootstrapFlow", () => {
     expect(screen.getByLabelText("Name")).toHaveFocus();
     expect(screen.getByLabelText("Name")).toHaveValue("web02x");
   });
+
+  it("animates the SSH connection, except for reduced motion", () => {
+    render(<BootstrapFlow {...props} />);
+    const ssh = screen.getByRole("button", { name: /I can SSH to it/ });
+    // motion-safe: only, so prefers-reduced-motion gets a still line.
+    const flow = ssh.querySelector("svg [data-part=flow]");
+    expect(flow).toHaveClass("motion-safe:animate-[dash-flow_1.2s_linear_infinite]");
+    expect(ssh.querySelector("svg text")).toHaveTextContent("ssh");
+  });
+
+  it("draws the paste card as a terminal handing a key-bearing script to the machine", () => {
+    render(<BootstrapFlow {...props} />);
+    const paste = screen.getByRole("button", { name: /I'm on the machine/ });
+    // Window dots on the terminal, the key, and the connector to the script.
+    expect(paste.querySelectorAll("svg [data-part=window-dot]")).toHaveLength(3);
+    expect(paste.querySelector("svg [data-part=key]")).not.toBeNull();
+    expect(paste.querySelector("svg [data-part=connector]")).not.toBeNull();
+  });
 });

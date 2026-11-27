@@ -94,30 +94,58 @@ function PathCard({
   );
 }
 
+// Both drawings follow the design canvas ("C · Pick how you reach it").
 function SshIllustration() {
   return (
-    <svg viewBox="0 0 360 100" className="h-24 w-full" aria-hidden="true">
-      <rect x="34" y="18" width="92" height="56" rx="6" className="fill-surface-2 stroke-muted" strokeWidth="2" />
-      <rect x="22" y="74" width="116" height="8" rx="3" className="fill-border" />
-      <path d="M52 38l10 8-10 8M68 56h20" fill="none" className="stroke-link" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M146 48H226" fill="none" className="stroke-link" strokeWidth="2.5" strokeDasharray="4 6" strokeLinecap="round" />
-      <rect x="240" y="14" width="88" height="30" rx="5" className="fill-surface-2 stroke-muted" strokeWidth="2" />
-      <rect x="240" y="52" width="88" height="30" rx="5" className="fill-surface-2 stroke-muted" strokeWidth="2" />
-      <circle cx="256" cy="29" r="3" className="fill-success" />
-      <circle cx="256" cy="67" r="3" className="fill-muted" />
+    <svg viewBox="0 0 360 110" className="h-28 w-full" aria-hidden="true">
+      {/* workstation */}
+      <rect x="34" y="22" width="92" height="58" rx="6" className="fill-surface-2 stroke-muted" strokeWidth="2" />
+      <rect x="22" y="80" width="116" height="8" rx="3" className="fill-border" />
+      <path d="M52 44l10 8-10 8M68 62h20" fill="none" className="stroke-link" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* the SSH connection */}
+      <path
+        data-part="flow"
+        d="M146 54H226"
+        fill="none"
+        className="stroke-link motion-safe:animate-[dash-flow_1.2s_linear_infinite]"
+        strokeWidth="2.5"
+        strokeDasharray="4 6"
+        strokeLinecap="round"
+      />
+      <rect x="160" y="40" width="52" height="22" rx="11" className="fill-surface-2 stroke-border" />
+      <text x="186" y="55" textAnchor="middle" className="fill-link font-mono" fontSize="11">
+        ssh
+      </text>
+      {/* servers */}
+      <rect x="240" y="18" width="88" height="30" rx="5" className="fill-surface-2 stroke-muted" strokeWidth="2" />
+      <rect x="240" y="56" width="88" height="30" rx="5" className="fill-surface-2 stroke-muted" strokeWidth="2" />
+      <circle cx="256" cy="33" r="3" className="fill-success" />
+      <circle cx="256" cy="71" r="3" className="fill-muted" />
+      <path d="M270 33h40M270 71h40" className="stroke-border" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function PasteIllustration() {
   return (
-    <svg viewBox="0 0 360 100" className="h-24 w-full" aria-hidden="true">
-      <rect x="110" y="6" width="140" height="88" rx="8" className="fill-bg stroke-muted" strokeWidth="2" />
-      <path d="M110 24h140" className="stroke-border" strokeWidth="2" />
-      <path d="M124 40l8 6-8 6" fill="none" className="stroke-link" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M140 46h70M124 62h96M124 76h56" className="stroke-border" strokeWidth="3" strokeLinecap="round" />
-      <rect x="278" y="30" width="52" height="44" rx="8" className="fill-surface-2 stroke-link" strokeWidth="2" />
-      <path d="M294 46h20M294 54h20M294 62h12" className="stroke-link" strokeWidth="2" strokeLinecap="round" />
+    <svg viewBox="0 0 360 110" className="h-28 w-full" aria-hidden="true">
+      {/* the key that goes into the script */}
+      <g data-part="key">
+        <rect x="44" y="40" width="40" height="32" rx="3" fill="none" className="stroke-border" strokeWidth="2" />
+        <circle cx="64" cy="56" r="6" fill="none" className="stroke-warn" strokeWidth="2" />
+      </g>
+      {/* terminal on the machine */}
+      <rect x="110" y="10" width="140" height="92" rx="8" className="fill-bg stroke-muted" strokeWidth="2" />
+      <path d="M110 28h140" className="stroke-border" strokeWidth="2" />
+      <circle data-part="window-dot" cx="122" cy="19" r="3" className="fill-border" />
+      <circle data-part="window-dot" cx="132" cy="19" r="3" className="fill-border" />
+      <circle data-part="window-dot" cx="142" cy="19" r="3" className="fill-border" />
+      <path d="M124 44l8 6-8 6" fill="none" className="stroke-link" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M140 50h70M124 66h96M124 80h56" className="stroke-border" strokeWidth="3" strokeLinecap="round" />
+      {/* the script */}
+      <path data-part="connector" d="M258 56h14" className="stroke-link" strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="278" y="34" width="52" height="44" rx="8" className="fill-surface-2 stroke-link" strokeWidth="2" />
+      <path d="M294 50h20M294 58h20M294 66h12" className="stroke-link" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
