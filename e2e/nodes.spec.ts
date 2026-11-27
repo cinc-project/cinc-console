@@ -9,7 +9,8 @@ test("an admin creates, edits, and deletes a node", async ({ page }) => {
 
   // Create
   await page.goto(`/orgs/${ORG}/nodes`);
-  await page.getByRole("link", { name: "New" }).click();
+  await page.getByRole("button", { name: "More ways to add a node" }).click();
+  await page.getByRole("button", { name: /Create node only/ }).click();
   await expect(page.getByRole("heading", { name: "New node" })).toBeVisible();
   await page.getByLabel("Name").fill(name);
   await page.getByRole("button", { name: "Create" }).click();

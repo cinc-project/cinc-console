@@ -90,7 +90,10 @@ permission" (it never substitutes its own check).
   `runAction`/`parseJsonObject`, list/detail/new pages, server actions bound with
   `.bind(null, org, name)` and passed to `ObjectEditor`/`NewObjectForm`.
 - **Mutations return `{ ok: true } | { error: string }`** via `runAction`.
-- v1 scope: nodes/roles/environments/data bags/members & groups = CRUD;
+- v1 scope: nodes/roles/environments/data bags/members & groups = CRUD; nodes
+  also bootstrap (`nodes/bootstrap`: a `cinc node bootstrap` command, or a
+  paste-in script that is a byte-faithful port of cinc-cli's, pinned by
+  `lib/bootstrap/__fixtures__`; the console creates only the client);
   permissions (object, container, org and user ACLs) = view + edit per permission;
   clients = create + delete + key management (no edit of the client
   object itself); user keys on /profile; cookbooks/policies = view + delete

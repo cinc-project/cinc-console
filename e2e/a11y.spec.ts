@@ -16,6 +16,14 @@ test("nodes list has no WCAG AA violations", async ({ page }) => {
   await scan(page);
 });
 
+test("bootstrap page has no WCAG AA violations", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto(`/orgs/${ORG}/nodes/bootstrap`);
+  await page.getByRole("button", { name: /I'm on the machine/ }).click();
+  await expect(page.getByLabel("Name")).toBeVisible();
+  await scan(page);
+});
+
 test("members page has no WCAG AA violations", async ({ page }) => {
   await login(page, ADMIN);
   await page.goto(`/orgs/${ORG}/members`);
